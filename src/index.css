@@ -46,7 +46,7 @@ html[data-theme="dark"], html[data-theme="dark"] body { background: #070707; col
     font-size: 13px;
     line-height: 18px;
   }
-  .rk-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .rk-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
   .theme-toggle { top: 12px; right: 22px; bottom: auto; }
 }
 @media print {

@@ -80,9 +80,10 @@ python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # 
 - Mobile-first, designed at 412 px wide. Desktop layout at ≥ 1024 px.
 - Text ≥ 13 px everywhere; chart axis labels 14 px. No prose paragraphs: labels, numbers, short chips.
 - Light and dark must both be high-contrast; use theme tokens from `useGrokTheme()`, not one-off greys.
-- No horizontal scrolling and no inner scroll frames; pill rows wrap.
-- Tiles have a border on all four sides. Desktop (≥ 1024 px): five full-viewport snap windows (see docs/DESIGN.md).
-  Phone layout stays a single column. Do not change the mobile view when editing desktop windows.
+- Desktop windows: no inner vertical scroll (overflow hidden). Charging sessions may swipe left/right. Pill rows wrap.
+- Tiles have a border on all four sides. Desktop (≥ 1024 px): five full-viewport snap windows (see docs/DESIGN.md);
+  every segment is a framed card like the top four charts. Phone layout stays a single column.
+  Do not change the mobile view when editing desktop windows.
 - No page title inside the page.
 - Battery chart Y max 108%. Battery health = measured capacity ÷ rated 71.2 kWh (100%).
   Warranty markers: 70% at 8 yr / 160,000 km, 62% at 10 yr / 200,000 km (extended).
