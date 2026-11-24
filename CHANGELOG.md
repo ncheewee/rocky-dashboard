@@ -3,6 +3,7 @@
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
 ## 2026-11-24
+- [mechanic] Docs: the GitHub Pages site is the single dashboard (canvas Page retired); Monday refresh updates only this repo.
 - [mechanic] Repo made public; GitHub Pages deploy workflow (`pages.yml`), Vite base `/rocky-dashboard/`.
   Live at https://ncheewee.github.io/rocky-dashboard/. Docs: public-repo rules, Monday refresh updates repo + canvas Page.
 

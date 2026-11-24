@@ -1,4 +1,4 @@
-/* Page frame: same as the original Grok Bot page host, so the layout matches the canvas Page. */
+/* Page frame: body padding, 72rem root, stable scrollbar gutter (see docs/DESIGN.md). */
 html { color-scheme: light dark; scrollbar-gutter: stable; }
 * { margin: 0; padding: 0; box-sizing: border-box; scrollbar-width: thin; }
 html, body, #root { min-height: 100vh; }

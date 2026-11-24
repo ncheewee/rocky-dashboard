@@ -41,8 +41,8 @@ npm run check:data && npm run build
 `build_ui_data.py --check` shows which keys would change without writing.
 
 The Grok Bot "Mechanic" agent does this every Monday 08:00 SGT (data through the Sunday before) and checks for new
-charging receipts daily. Each refresh updates **both** this repo's JSON (a data-only commit to `main`, which redeploys
-the live site) and the Grok Bot canvas Page. See AGENTS.md for how its commits are kept separate from UI work.
+charging receipts daily. Each refresh is a data-only commit of `src/data/dashboard.json` to `main`, which redeploys
+the live site. See AGENTS.md for how its commits are kept separate from UI work.
 
 ## Hosting
 
@@ -52,7 +52,7 @@ Vite `base` is `/rocky-dashboard/`; assets (car PNG, data JSON) are imported fro
 If the site ever moves to a custom domain or another host at the root, change `base` in `vite.config.ts`.
 `.github/workflows/ci.yml` typechecks and builds every PR.
 
-The Grok Bot canvas copy of the dashboard stays at https://l03-charging-dashboard-6jdw.pages.grok.bot/.
+This GitHub Pages site is the only copy of the dashboard; all UI work happens in this repo.
 The page sets `noindex`.
 
 ## Privacy

@@ -1,12 +1,12 @@
 # Design spec
 
-The look is the original Grok Bot Page "Rocky · L03 Dashboard" ported 1:1. When in doubt, match it.
+This repo and https://ncheewee.github.io/rocky-dashboard/ are the reference for the look. Keep changes consistent with what is there.
 
 ## Hard rules
 
 1. **Mobile-first at 412 px** (CSS px). Phones/tablets (< 1024 px) = single column. Desktop = ≥ 1024 px.
 2. **Type:** nothing under 13 px. Chart axis labels 14 px. Section headings 24/30 px, weight 600, letter-spacing −0.25 px.
-   Body 13 px, line-height 1.385. System font stack (the original host font is proprietary).
+   Body 13 px, line-height 1.385. System font stack.
 3. **No prose.** Labels, numbers, short chips and legends only. No explanatory paragraphs, no in-page title.
 4. **Light + dark, both high-contrast.** Colours come from `useGrokTheme()` tokens (`theme.text.*`, `theme.bg.*`,
    `theme.border.*`, `theme.dataviz.*`). Hard-coded hex is fine only for the semantic palettes below.
@@ -47,12 +47,12 @@ Driving style · Efficiency by speed · Trips · Driving and car stats · Insigh
 
 ## Theme tokens
 
-Defined in `src/kit.tsx` (`grokPaletteLight` / `grokPaletteDark`), same values as the original kit:
+Defined in `src/kit.tsx` (`grokPaletteLight` / `grokPaletteDark`), the source of truth for colours:
 light bg `#fcfcfc`, text `#141414`; dark bg `#070707`, text `#fcfcfc`; secondary/tertiary text = primary at 60%/40%. Read the file; don't copy values elsewhere.
 
-### Notes from the port
+### Deliberate colour choices
 
-The original host remapped a few literal colours at runtime. The port mirrors what was actually displayed:
+These look like oversights but are intentional:
 active pill = page background + primary text + default border (not a filled dark pill); heatmap weekday date chips =
 page background with primary text (weekends stay `#6C3FA0`); the heatmap separator under the totals is invisible;
 the "0" calendar legend swatch uses `bg.subtle`. Change these deliberately, not by accident.

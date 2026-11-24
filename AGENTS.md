@@ -6,6 +6,7 @@ It is a Vite + React + TypeScript app with no backend; all data is one JSON file
 
 - **Live site:** https://ncheewee.github.io/rocky-dashboard/ — GitHub Pages, deployed by `.github/workflows/pages.yml`
   on every push to `main` (so a merged PR or a Mechanic data commit goes live in ~1 min).
+- **Single source:** this repo is the only dashboard; all UI work happens here (no other copy to keep in sync).
 - **This repo is PUBLIC.** Never commit secrets, tokens, credentials, emails, raw exports, receipts or any personal
   raw data — not even temporarily (git history is public too).
 
@@ -55,8 +56,8 @@ python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # 
 
 - **Mechanic** = the Grok Bot agent that runs the weekly refresh (Mondays 08:00 SGT, data through the
   Sunday before) and the daily MNL charging-receipt check. It owns `src/data/dashboard.json` and `scripts/`.
-  - The Monday refresh updates **both** this repo (`src/data/dashboard.json` → data commit → Pages redeploy) and the
-    Grok Bot canvas Page. They must show the same numbers.
+  - The Monday refresh regenerates `src/data/dashboard.json` and pushes a data commit, which redeploys the site.
+    This repo / site is the single source; there is no other copy of the dashboard.
   - It may push **data-only commits straight to `main`** (only `src/data/dashboard.json`, plus `CHANGELOG.md`),
     message `data: refresh through YYYY-MM-DD`.
   - Pipeline changes (`scripts/`) go through a PR like any other code change.
@@ -92,7 +93,7 @@ python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # 
 ## Data contract
 
 - File: `src/data/dashboard.json`, typed by `src/data/types.ts` (`DashboardData`), `schemaVersion: 1`.
-- Keys are UPPER_CASE (they were constants in the original page): `UPDATED`, `TODAY`, `DAILY`, `WEEKLY`, `MONTHLY`,
+- Keys are UPPER_CASE (historical naming): `UPDATED`, `TODAY`, `DAILY`, `WEEKLY`, `MONTHLY`,
   `SOH`, `CHARGES`, `TILES`, `STATS`, `DRIVES`, … — see `types.ts` for all of them and their shapes.
 - `TODAY` = last day shown (Monday refresh → the Sunday before). `DAILY` never contains days after `TODAY`.
 - Estimated values carry an explicit flag/label (`kwhEst`, `costEst`, `est.` in strings). Keep that.
