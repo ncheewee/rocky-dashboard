@@ -61,7 +61,7 @@ export function Section({ heading, children, fill = false }: { heading?: string;
   return (
     <section id={heading ? slug(heading) : undefined} style={fill ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } : undefined}>
       {heading && <h2 dir="auto" style={{ margin: 0, flex: "none", fontFamily: theme.font.family, fontSize: 24, lineHeight: "30px", letterSpacing: "-0.25px", fontWeight: 600, color: theme.text.primary }}>{heading}</h2>}
-      <div style={{ marginTop: heading ? 16 : 0, ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>{children}</div>
+      <div style={{ marginTop: heading ? 16 : 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : {}) }}>{children}</div>
     </section>
   );
 }

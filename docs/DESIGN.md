@@ -10,8 +10,9 @@ This repo and https://ncheewee.github.io/rocky-dashboard/ are the reference for 
 3. **No prose.** Labels, numbers, short chips and legends only. No explanatory paragraphs, no in-page title.
 4. **Light + dark, both high-contrast.** Colours come from `useGrokTheme()` tokens (`theme.text.*`, `theme.bg.*`,
    `theme.border.*`, `theme.dataviz.*`). Hard-coded hex is fine only for the semantic palettes below.
-5. **No horizontal scroll, no scroll frames.** Pill rows `flex-wrap`. Grids use `minmax(0, 1fr)`. Check `scrollWidth`
-   equals the viewport (desktop shows 1910 at 1920 because of the stable scrollbar gutter; that is expected).
+5. **No inner vertical scroll.** Desktop windows clip to the viewport (`overflow: hidden`); nothing inside a window
+   scrolls up/down. Charging sessions may swipe left/right. Pill rows `flex-wrap`. Grids use `minmax(0, 1fr)`.
+   Check `scrollWidth` equals the viewport (desktop shows 1910 at 1920 because of the stable scrollbar gutter).
 6. **Tiles / cards:** 2 px border in the accent colour on all four sides + accent `14` (8%) tint. No left-edge-only accents.
 7. **Never invent data.** Estimates are labelled (`est.`, `≈`, dashed bars). Missing data shows `–` or a dashed pill.
 8. **No GPS/location.**
@@ -26,12 +27,12 @@ Sections are 64 px apart (mobile), heading → body 16 px.
 Charging sessions (swipe cards) · Battery health vs warranty · Daily distance · Resting with aircon · Tyre pressure ·
 Driving style · Efficiency by speed · Trips · Driving and car stats · Insights.
 
-**Desktop (≥ 1024 px):** five full-viewport windows that snap (`scroll-snap-type: y mandatory`, `scroll-snap-stop: always`). The reader cannot rest between windows. Phone layout is unchanged.
-- Window 1: “Updated as of” top left, light/dark toggle top right; 8 tiles in one row; four equal framed charts filling the rest (Distance/energy/cost · Battery charge | Battery health · Driving style). Chart heights are measured so the 2×2 fills the leftover height at 1920×950.
-- Window 2: heatmap left 40%; right 60% split into Daily distance (top) and Efficiency by speed (bottom).
-- Window 3: charging sessions 50% left (swipe cards with a peek of the neighbours) · tyre pressure 50% right.
-- Window 4: Resting with aircon | Trips, equal columns.
-- Window 5: “Other Highlights” (the driving/car stats) in one row, then Insights.
+**Desktop (≥ 1024 px):** five full-viewport windows that snap (`scroll-snap-type: y mandatory`, `scroll-snap-stop: always`). The reader cannot rest between windows. Phone layout is unchanged. Every segment uses the same 1 px framed card as the window-1 charts.
+- Window 1: “Updated as of” top left, light/dark toggle top right; 8 tiles in one row; four equal framed charts filling the rest (Distance/energy/cost · Battery charge | Battery health · Driving style). Chart SVG height is the leftover flex space so x-axes stay visible.
+- Window 2: heatmap left 40% (fits the pane, no up/down scroll, week swipe is left/right); right 60% split into Daily distance (top) and Efficiency by speed (bottom). Daily-distance km labels stay inside the day cells.
+- Window 3: charging sessions 50% left (swipe cards stretch to the pane height, neighbours peek) · tyre pressure 50% right (legend centred under the car; no placard line).
+- Window 4: Resting with aircon | Trips, equal columns, no inner scroll. Resting filters: Latest 10 / Longest 10; the five rest numbers stay on one row.
+- Window 5: “Other Highlights” (the driving/car stats) in one row, then Insights filling the rest of the window.
 
 ## Charts and semantics
 
@@ -42,7 +43,7 @@ Driving style · Efficiency by speed · Trips · Driving and car stats · Insigh
 - **Distance, energy and cost:** Daily / Weekly / Monthly pills; km + kWh bars (dashed = pending estimate); S$ smooth
   monotone curve with per-point labels. Pan/pinch/zoom gestures; never scrolls the page sideways.
 - **Driving Heatmap:** one Mon–Sun week, swipe or ‹ ›; drives as blocks at exact times; Efficiency / Distance / Minutes.
-- **Tyres (cold, bar):** green ≥ 2.6 · amber 2.5–2.59 · red < 2.5. Placard 2.6 cold. Keep `src/assets/car-topdown-3x.png`.
+- **Tyres (cold, bar):** green ≥ 2.6 · amber 2.5–2.59 · red < 2.5. Desktop: colour legend centred under the car, no placard line. Phone still shows placard 2.6 cold. Keep `src/assets/car-topdown-3x.png`.
 - **Efficiency colours (kWh/100 km):** green better than average, amber around average, red higher; grey < 1 km.
 
 ## Theme tokens
