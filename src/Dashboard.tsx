@@ -215,10 +215,10 @@ function Tiles() {
   );
 }
 
-function ChartLegend({ items }: { items: { kind: "bar" | "line" | "dash" | "dot" | "box" | "band"; color: string; label: string }[] }) {
+function ChartLegend({ items, stack = false }: { items: { kind: "bar" | "line" | "dash" | "dot" | "box" | "band"; color: string; label: string }[]; stack?: boolean }) {
   const theme = useGrokTheme();
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", alignItems: "center", fontSize: FS, color: theme.text.secondary }}>
+    <div style={{ display: "flex", flexDirection: stack ? "column" : "row", flexWrap: stack ? "nowrap" : "wrap", gap: stack ? 4 : "6px 16px", alignItems: stack ? "flex-start" : "center", fontSize: FS, color: theme.text.secondary }}>
       {items.map((it) => (
         <span key={it.label} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {it.kind === "bar" && <span style={{ width: 12, height: 12, borderRadius: 3, background: it.color, display: "inline-block" }} />}
@@ -230,6 +230,24 @@ function ChartLegend({ items }: { items: { kind: "bar" | "line" | "dash" | "dot"
           {it.label}
         </span>
       ))}
+    </div>
+  );
+}
+
+function HeadRow({ title, children }: { title: string; children?: ReactNode }) {
+  const theme = useGrokTheme();
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", flex: "none", minWidth: 0 }}>
+      <h2 dir="auto" style={{ margin: 0, flex: "none", fontFamily: theme.font.family, fontSize: 24, lineHeight: "30px", letterSpacing: "-0.25px", fontWeight: 600, color: theme.text.primary }}>{title}</h2>
+      {children && <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0 }}>{children}</div>}
+    </div>
+  );
+}
+
+function ChartLegendOverlay({ items }: { items: { kind: "bar" | "line" | "dash" | "dot" | "box" | "band"; color: string; label: string }[] }) {
+  return (
+    <div style={{ position: "absolute", top: 4, right: 8, zIndex: 1, pointerEvents: "none" }}>
+      <ChartLegend items={items} stack />
     </div>
   );
 }
@@ -266,7 +284,7 @@ function ComboPanel() {
   const isDefault = Math.abs(v.lo - (n - defSpan)) < 0.01 && Math.abs(span - defSpan) < 0.01;
   const setPeriod = (p: "month" | "week" | "day") => { setPeriodRaw(p); setView(null); };
   const H = DESK ? Math.max(90, h) : narrow ? 320 : 360;
-  const L = narrow ? 40 : 52, T = 34, B = 34;
+  const L = narrow ? 40 : 52, T = DESK ? 26 : 34, B = 34;
   const ph = H - T - B, base = T + ph;
   // y scales follow the bars whose centre is in view
   const inView = all.filter((_, i) => i + 0.5 >= v.lo - 0.01 && i + 0.5 <= v.hi + 0.01);
@@ -431,23 +449,32 @@ function ComboPanel() {
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
   }, [w > 0]);
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", flex: "none" }}>
+  const comboLegend = [
+    { kind: "bar" as const, color: c[0], label: "km" },
+    { kind: "bar" as const, color: c[1], label: "kWh" },
+    { kind: "line" as const, color: c[2], label: "S$" },
+    ...(rows.some((r) => r.pending) ? [{ kind: "box" as const, color: theme.text.tertiary, label: "pending" }] : []),
+  ];
+  const comboPills = (
         <Pills<"month" | "week" | "day">
           options={[{ value: "day", label: "Daily" }, { value: "week", label: "Weekly" }, { value: "month", label: "Monthly" }]}
           value={period}
           onChange={(v: "month" | "week" | "day") => setPeriod(v)}
         />
-        <ChartLegend
-          items={[
-            { kind: "bar", color: c[0], label: "km" },
-            { kind: "bar", color: c[1], label: "kWh" },
-            { kind: "line", color: c[2], label: "S$" },
-            ...(rows.some((r) => r.pending) ? [{ kind: "box" as const, color: theme.text.tertiary, label: "pending" }] : []),
-          ]}
-        />
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
+      {DESK ? (
+        <HeadRow title="Distance, energy and cost">
+          {comboPills}
+          <ChartLegend items={comboLegend} />
+        </HeadRow>
+      ) : (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", flex: "none" }}>
+        {comboPills}
+        <ChartLegend items={comboLegend} />
       </div>
+      )}
       <div ref={ref} style={{ width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
         {w > 0 && (!DESK || h > 0) && (
           <div
@@ -475,8 +502,8 @@ function ComboPanel() {
                 <text x={w - R + 8} y={base - f * ph + 5} textAnchor="start" fontSize={FS} fill={theme.text.tertiary}>{`S$${Math.round(rightMax * f)}`}</text>
               </g>
             ))}
-            <text x={0} y={T - 16} textAnchor="start" fontSize={FS} fill={theme.text.tertiary}>km · kWh</text>
-            <text x={w} y={T - 16} textAnchor="end" fontSize={FS} fill={theme.text.tertiary}>S$</text>
+            {!DESK && <text x={0} y={T - 16} textAnchor="start" fontSize={FS} fill={theme.text.tertiary}>km · kWh</text>}
+            {!DESK && <text x={w} y={T - 16} textAnchor="end" fontSize={FS} fill={theme.text.tertiary}>S$</text>}
             <svg x={L} y={0} width={pw} height={H} overflow="hidden">
             <g ref={plot} transform={`translate(${-L},0)`}>
             {drawn.map(({ r, i }) => {
@@ -515,11 +542,12 @@ function ComboPanel() {
               const dk = isDarkTheme(theme);
               const ink = dk ? "#7EEBF2" : "#0A6670";
               const shadow = { textShadow: dk ? "0 1px 3px rgba(0,0,0,0.9)" : "0 1px 2px rgba(0,0,0,0.22)" };
-              if (tw <= bw - 4) {
+              // Daily: always horizontal above the dot. Week/month may rotate if the bucket is too narrow.
+              if (period === "day" || tw <= bw - 4) {
                 const valYs = barW >= 12 ? [r.km === null ? null : yl(r.km) - 6, r.kwh + r.kwhEst > 0 ? yl(r.kwh + r.kwhEst) - 6 : null].filter((v): v is number => v !== null) : [];
                 let ly = p.y - 12;
                 if (valYs.some((v) => Math.abs(v - ly) < 16)) ly = Math.min(...valYs) - 18;
-                if (ly < 16) ly = p.y + 24;
+                if (ly < 14) ly = 14;
                 return <text key={`l${i}`} x={p.x} y={ly} textAnchor="middle" fontSize={13} fontWeight={700} fill={ink} style={shadow}>{s}</text>;
               }
               const up = p.y - 12 - tw >= 4;
@@ -553,7 +581,7 @@ function SohPanel() {
   const { ref, w, h } = useWidth();
   const narrow = w < 560;
   const H = DESK ? Math.max(90, h) : narrow ? 280 : 330;
-  const L = 48, R = 18, T = 22, B = 38;
+  const L = 48, R = 18, T = DESK ? 8 : 22, B = 38;
   const pw = Math.max(10, w - L - R), ph = H - T - B;
   const t0 = utc(DELIVERY), t1 = utc(WARRANTY_END), t8 = utc(WARRANTY_Y8);
   const xMin = zoom ? utc("2026-11-01") : t0;
@@ -583,22 +611,29 @@ function SohPanel() {
   const wx0 = x(wa), wx1 = x(xMax), wy0 = y(warr(wa)), wy1 = y(warr(xMax));
   const w8 = !zoom ? { x: x(t8), y: y(70) } : null;
   const wd = w8 ? `M${wx0},${wy0} L${w8.x},${w8.y} L${wx1},${wy1}` : `M${wx0},${wy0} L${wx1},${wy1}`;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", flex: "none" }}>
+  const sohLegend = [
+    { kind: "dot" as const, color: hc, label: `Health (${SOH_RATED_KWH} kWh rated = 100%)` },
+    { kind: "dash" as const, color: dv.other, label: "Warranty 70% at yr 8 · 62% at yr 10" },
+  ];
+  const sohPills = (
         <Pills<"10y" | "zoom">
           options={[{ value: "10y", label: "10 years" }, { value: "zoom", label: "First 3 months" }]}
           value={view}
           onChange={(v: "10y" | "zoom") => setView(v)}
         />
-        <ChartLegend
-          items={[
-            { kind: "dot", color: hc, label: `Health (${SOH_RATED_KWH} kWh rated = 100%)` },
-            { kind: "dash", color: dv.other, label: "Warranty 70% at yr 8 · 62% at yr 10" },
-          ]}
-        />
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
+      {DESK ? (
+        <HeadRow title="Battery health vs warranty">{sohPills}</HeadRow>
+      ) : (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", flex: "none" }}>
+        {sohPills}
+        <ChartLegend items={sohLegend} />
       </div>
-      <div ref={ref} style={{ width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
+      )}
+      <div ref={ref} style={{ position: "relative", width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
+        {DESK && <ChartLegendOverlay items={sohLegend} />}
         {w > 0 && (!DESK || h > 0) && (
           <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Battery health against the warranty line">
             <defs>
@@ -708,10 +743,10 @@ function DistanceCalendar() {
                     <div
                       key={key}
                       title={outside ? undefined : km === null ? `${day} ${names[m - 1]}: no data yet` : `${day} ${names[m - 1]}: ${Math.round(km)} km`}
-                      style={{ aspectRatio: DESK ? undefined : "1 / 1", height: DESK ? "100%" : undefined, minHeight: 0, borderRadius: 8, background: style ? style.bg : "transparent", color: style ? style.ink : theme.text.tertiary, border: style ? "none" : `1px solid ${theme.border.subtle}`, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: DESK ? "1px 3px" : "4px 5px", minWidth: 0, overflow: "hidden", boxSizing: "border-box" }}
+                      style={{ aspectRatio: DESK ? undefined : "1 / 1", height: DESK ? "100%" : undefined, minHeight: 0, borderRadius: 8, background: style ? style.bg : "transparent", color: style ? style.ink : theme.text.tertiary, border: style ? "none" : `1px solid ${theme.border.subtle}`, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: DESK ? "2px 3px 8px" : "4px 5px", minWidth: 0, overflow: "hidden", boxSizing: "border-box" }}
                     >
                       <span style={{ fontSize: 13, lineHeight: "13px", fontWeight: 500 }}>{day}</span>
-                      <span style={{ fontSize: DESK ? 13 : 15, lineHeight: DESK ? "13px" : "16px", fontWeight: 700, textAlign: "right" }}>{outside ? "" : km === null ? "?" : Math.round(km)}</span>
+                      <span style={{ fontSize: DESK ? 13 : 15, lineHeight: DESK ? "13px" : "16px", fontWeight: 700, textAlign: "right", marginBottom: DESK ? 2 : 0 }}>{outside ? "" : km === null ? "?" : Math.round(km)}</span>
                     </div>
                   );
                 })}
@@ -744,7 +779,7 @@ function SocChart() {
   const { ref, w, h } = useWidth();
   const narrow = w < 560;
   const H = DESK ? Math.max(90, h) : narrow ? 262 : 312;
-  const L = 46, R = 10, T = 12, B = 46;
+  const L = 46, R = 10, T = DESK ? 8 : 12, B = 46;
   const pw = Math.max(10, w - L - R), ph = H - T - B;
   const span = SOC_DAYS * 1440;
   const x = (m: number) => L + (m / span) * pw;
@@ -755,19 +790,21 @@ function SocChart() {
   const every = dayW < 18 ? Math.ceil(18 / dayW) : 1;
   const MONS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const monthLabel = MONS[Number(START_DATE.slice(5, 7)) - 1] ?? "";
+  const socLegend = [
+    { kind: "line" as const, color: STATE_COLORS.c, label: "Charging" },
+    { kind: "line" as const, color: STATE_COLORS.d, label: "Driving" },
+    { kind: "line" as const, color: STATE_COLORS.p, label: "Parked (awake)" },
+    { kind: "dash" as const, color: STATE_COLORS.p + "80", label: "Asleep (no data)" },
+  ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
+      {DESK ? <HeadRow title="Battery charge over time" /> : (
       <div style={{ flex: "none" }}>
-      <ChartLegend
-        items={[
-          { kind: "line", color: STATE_COLORS.c, label: "Charging" },
-          { kind: "line", color: STATE_COLORS.d, label: "Driving" },
-          { kind: "line", color: STATE_COLORS.p, label: "Parked (awake)" },
-          { kind: "dash", color: STATE_COLORS.p + "80", label: "Asleep (no data)" },
-        ]}
-      />
+      <ChartLegend items={socLegend} />
       </div>
-      <div ref={ref} style={{ width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
+      )}
+      <div ref={ref} style={{ position: "relative", width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
+        {DESK && <ChartLegendOverlay items={socLegend} />}
         {w > 0 && (!DESK || h > 0) && (
           <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Battery charge over time">
             {[0, 25, 50, 75, 100].map((v) => (
@@ -902,7 +939,8 @@ function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
                 </span>
               </div>
             </div>
-            <div style={{ flex: DESK ? "1 1 0" : undefined, minHeight: DESK ? 80 : undefined, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: DESK ? "1 1 0" : undefined, minHeight: DESK ? 80 : undefined, display: "flex", gap: DESK ? 6 : 0, minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <svg width="100%" height={DESK ? "100%" : 44} viewBox="0 0 100 30" preserveAspectRatio="none" aria-label="Charging power profile" role="img" style={{ display: "block", flex: DESK ? 1 : undefined, minHeight: DESK ? 80 : 44 }}>
                 {cov < 1 && <rect x={cov * 100} y={0} width={100 - cov * 100} height={30} fill={theme.border.subtle} fillOpacity={0.6} />}
                 {cov < 1 && <line x1={cov * 100} x2={100} y1={29} y2={29} stroke={theme.border.strong} strokeWidth={1.5} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
@@ -914,8 +952,19 @@ function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
                 {cov < 1 && cov > 0.15 && cov < 0.6 && <span style={{ position: "absolute", left: `${cov * 100}%`, paddingLeft: 4, whiteSpace: "nowrap", borderLeft: `1px dashed ${theme.border.strong}` }}>23:59 export end</span>}
                 <span style={{ position: "absolute", right: 0 }}>{`${tEnd ?? ""}${cov < 1 ? " unplug" : ""}`}</span>
               </div>
+              </div>
+              {DESK && k === idx && (
+                <div style={{ width: 28, flex: "none", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                  <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "flex-start", fontSize: 13, color: theme.text.tertiary, lineHeight: "13px" }}>
+                    <span style={{ fontWeight: 600 }}>{`${max} kW`}</span>
+                    <span>{max / 2}</span>
+                    <span>0</span>
+                  </div>
+                  <div style={{ height: 20, flex: "none" }} />
+                </div>
+              )}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "6px 12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: DESK ? "6px 40px" : "6px 12px", width: DESK ? "min(100%, 480px)" : undefined, maxWidth: "100%", margin: DESK ? "0 auto" : undefined, boxSizing: "border-box" }}>
               {stats.map(([k, v]) => (
                 <div key={k} style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: theme.text.tertiary }}>{k}</div>
@@ -1177,17 +1226,17 @@ function SpeedBands() {
   const theme = useGrokTheme();
   const max = Math.max(...SPEED.map((s) => s.eff ?? 0));
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined, justifyContent: DESK ? "space-between" : undefined }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 4 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined }}>
       {SPEED.map((s) => {
         const col = effColor(s.eff);
         return (
-          <div key={s.band} style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+          <div key={s.band} style={{ display: "flex", flexDirection: "column", gap: DESK ? 2 : 4, minWidth: 0, flex: DESK ? "1 1 0" : undefined, minHeight: DESK ? 0 : undefined, justifyContent: DESK ? "center" : undefined }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 14 }}>
               <span style={{ fontWeight: 700, color: theme.text.primary }}>{`${s.band.replace("-", "–")} km/h`}</span>
               <span style={{ color: theme.text.tertiary, fontSize: 13 }}>{`${s.km}% of km · ${s.time}% of time`}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ flex: 1, height: 22, borderRadius: 6, background: theme.bg.subtle, overflow: "hidden", minWidth: 0 }}>
+              <div style={{ flex: 1, height: DESK ? 14 : 22, borderRadius: 6, background: theme.bg.subtle, overflow: "hidden", minWidth: 0 }}>
                 {s.eff !== null && <div style={{ width: `${(s.eff / max) * 100}%`, height: "100%", background: col.bg, borderRadius: 6 }} />}
               </div>
               <span style={{ width: 52, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.text.primary, flexShrink: 0 }}>{s.eff === null ? "–" : s.eff}</span>
@@ -1195,24 +1244,51 @@ function SpeedBands() {
           </div>
         );
       })}
-      <div style={{ fontSize: 13, color: theme.text.tertiary }}>kWh/100 km</div>
+      <div style={{ fontSize: 13, color: theme.text.tertiary, flex: "none" }}>kWh/100 km</div>
     </div>
   );
 }
 
+const EFF_CHIP_LEGEND: { max: number | null; bg: string; ink: string; label: string }[] = [
+  { max: 10, bg: "#2E9E4F", ink: "#FFFFFF", label: "≤ 10" },
+  { max: 12, bg: "#9ED36A", ink: "#1F2933", label: "10–12" },
+  { max: 14, bg: "#F2C94C", ink: "#1F2933", label: "12–14" },
+  { max: 16, bg: "#F2994A", ink: "#1F2933", label: "14–16" },
+  { max: null, bg: "#E0453A", ink: "#FFFFFF", label: "16+" },
+];
 function TripList() {
   const theme = useGrokTheme();
   const [mode, setMode] = useState<"longest" | "recent">("longest");
   const trips = mode === "longest" ? TRIPS_LONGEST : TRIPS_RECENT;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, flex: "none" }}>
+  const pills = (
         <Pills<"longest" | "recent">
           options={[{ value: "longest", label: "Longest 10" }, { value: "recent", label: "Latest 10" }]}
           value={mode}
           onChange={(v: "longest" | "recent") => setMode(v)}
         />
+  );
+  const chipLegend = (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", alignItems: "center", fontSize: 13, color: theme.text.secondary }}>
+      {EFF_CHIP_LEGEND.map((b) => (
+        <span key={b.label} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <span style={{ minWidth: 28, textAlign: "center", padding: "1px 6px", borderRadius: 6, background: b.bg, color: b.ink, fontSize: 13, fontWeight: 700 }}>{b.label}</span>
+        </span>
+      ))}
+      <span style={{ color: theme.text.tertiary }}>kWh/100 km</span>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined }}>
+      {DESK ? (
+        <HeadRow title="Trips">
+          {pills}
+          {chipLegend}
+        </HeadRow>
+      ) : (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, flex: "none" }}>
+        {pills}
       </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", flex: DESK ? 1 : undefined, minHeight: 0, overflow: DESK ? "hidden" : undefined }}>
         {trips.map((t, i) => {
           const col = effColor(t.eff);
@@ -1228,7 +1304,7 @@ function TripList() {
           );
         })}
       </div>
-      <div style={{ fontSize: 13, color: theme.text.tertiary, flex: "none" }}>Coloured chip: kWh/100 km</div>
+      {!DESK && <div style={{ fontSize: 13, color: theme.text.tertiary, flex: "none" }}>Coloured chip: kWh/100 km</div>}
     </div>
   );
 }
@@ -1358,6 +1434,30 @@ const TYRE_POS: { k: string; a: string; b: string; i: 1 | 2 | 3 | 4; left: boole
   { k: "RL", a: "Rear", b: "Left", i: 3, left: true, row: 2, x: 9, y: 166 },
   { k: "RR", a: "Rear", b: "Right", i: 4, left: false, row: 2, x: 101, y: 166 },
 ];
+function TyreSpark({ vals, color, start, end }: { vals: number[]; color: string; start: string; end: string }) {
+  const theme = useGrokTheme();
+  const W = 108, H = 46, L = 2, R = 2, T = 3, B = 16;
+  const pw = W - L - R, ph = H - T - B;
+  const vmin = Math.min(...vals, TYRE_RED);
+  const vmax = Math.max(...vals, TYRE_OK);
+  const pad = Math.max(0.06, (vmax - vmin) * 0.4);
+  const lo = vmin - pad, hi = vmax + pad;
+  const n = vals.length;
+  const x = (i: number) => L + (n <= 1 ? pw / 2 : (i / (n - 1)) * pw);
+  const y = (v: number) => T + ph - ((v - lo) / Math.max(0.01, hi - lo)) * ph;
+  const d = vals.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const lab = (t: string) => `${Number(t.slice(8, 10))} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(t.slice(5, 7)) - 1] ?? ""}`;
+  const yOk = y(TYRE_OK);
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block", flex: "none" }} aria-hidden>
+      <line x1={L} x2={W - R} y1={yOk} y2={yOk} stroke={theme.border.default} strokeDasharray="3 3" />
+      {d && <path d={d} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />}
+      {vals.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r={1.8} fill={color} />)}
+      <text x={L} y={H - 2} fontSize={13} fill={theme.text.tertiary}>{lab(start)}</text>
+      <text x={W - R} y={H - 2} textAnchor="end" fontSize={13} fill={theme.text.tertiary}>{lab(end)}</text>
+    </svg>
+  );
+}
 function TyrePanel() {
   const theme = useGrokTheme();
   const dark = isDarkTheme(theme);
@@ -1368,7 +1468,7 @@ function TyrePanel() {
   const ok = tyreState(9, dark).color, amber = tyreState(TYRE_OK - 0.05, dark).color, red = tyreState(0, dark).color;
   const { ref, w, h } = useWidth();
   // car image (870x1596, user's SVG rasterised 3x) at ~48% of the panel; wheel boxes in % of the image (SVG viewBox 290x532)
-  const carWByW = DESK ? Math.min(280, Math.round((w || 480) * 0.38)) : Math.round((w || 360) * 0.48);
+  const carWByW = DESK ? Math.min(220, Math.round((w || 480) * 0.30)) : Math.round((w || 360) * 0.48);
   const carHByW = Math.round(carWByW * 1596 / 870);
   const carHMax = DESK && h > 100 ? Math.max(180, h - 80) : carHByW;
   const carH = Math.min(carHByW, carHMax);
@@ -1396,13 +1496,16 @@ function TyrePanel() {
           const st = tyreState(v, dark);
           const ink = st.warn ? st.color : theme.text.primary;
           return (
-            <div key={t.k} style={{ gridColumn: t.left ? 1 : 3, gridRow: t.row, alignSelf: t.row === 1 ? "start" : "end", display: "flex", flexDirection: "column", alignItems: t.left ? "flex-end" : "flex-start", textAlign: t.left ? "right" : "left", minWidth: 0, paddingTop: t.row === 1 ? Math.round(carH * 0.13) : 0, paddingBottom: t.row === 2 ? Math.round(carH * 0.17) : 0 }}>
+            <div key={t.k} style={{ gridColumn: t.left ? 1 : 3, gridRow: t.row, alignSelf: t.row === 1 ? "start" : "end", display: "flex", flexDirection: t.left ? "row-reverse" : "row", alignItems: "center", justifyContent: "flex-start", gap: DESK ? 8 : 0, textAlign: t.left ? "right" : "left", minWidth: 0, paddingTop: t.row === 1 ? Math.round(carH * 0.13) : 0, paddingBottom: t.row === 2 ? Math.round(carH * 0.17) : 0 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: t.left ? "flex-end" : "flex-start", minWidth: 0 }}>
               <span style={{ fontSize: 13, lineHeight: "16px", color: st.warn ? st.color : theme.text.secondary }}>{st.warn ? `⚠ ${t.a}` : t.a}<br />{t.b}</span>
               <span style={{ marginTop: 4, color: ink, whiteSpace: "nowrap" }}>
                 <span style={{ fontSize: numFs, fontWeight: 700, lineHeight: `${numFs + 4}px`, fontVariantNumeric: "tabular-nums" }}>{v.toFixed(2)}</span>
                 <span style={{ fontSize: 14, marginLeft: 3, color: st.warn ? st.color : theme.text.secondary }}>bar</span>
               </span>
               <span style={{ fontSize: 15, fontWeight: 600, color: st.warn ? st.color : theme.text.secondary, fontVariantNumeric: "tabular-nums" }}>{`${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(2)}`}</span>
+              </div>
+              {DESK && first && last && <TyreSpark vals={TYRE_COLD.map((r) => r[t.i])} color={st.color} start={first[0]} end={last[0]} />}
             </div>
           );
         })}
@@ -1508,25 +1611,29 @@ function StylePanel() {
       </div>
   );
   if (DESK) {
-    // desktop: selected trip, scatter and legend on the left; the 4 style figures (compact 2x2) and the style pill on the right
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 340px)", gap: 16, alignItems: "stretch", minWidth: 0, height: "100%", minHeight: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, minHeight: 0, height: "100%" }}>
-          {detailEl}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, height: "100%", minHeight: 0 }}>
+        <HeadRow title="Driving style">{pillEl}</HeadRow>
+        {detailEl}
+        <div style={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: "column" }}>
           {chartEl}
-          {legendEl}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, minWidth: 0 }}>
-          {tiles.map((t) => (
-            <div key={t.label} style={{ borderRadius: 12, padding: "6px 10px 8px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", gap: 1, minWidth: 0, boxSizing: "border-box" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary, lineHeight: "17px" }}>{t.label}</span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: theme.text.primary, lineHeight: "22px" }}>{t.value}</span>
-              <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "16px" }}>{t.note}</span>
-            </div>
-          ))}
-        </div>
-        {pillEl}
+          <div style={{ position: "absolute", top: 4, right: 8, width: "min(248px, 42%)", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, pointerEvents: "none", zIndex: 1 }}>
+            {tiles.map((t) => (
+              <div key={t.label} style={{ borderRadius: 12, padding: "5px 8px 6px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary, lineHeight: "16px" }}>{t.label}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: theme.text.primary, lineHeight: "20px" }}>{t.value}</span>
+                <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "15px" }}>{t.note}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ position: "absolute", left: 50, bottom: 36, display: "flex", flexWrap: "wrap", gap: "4px 12px", alignItems: "center", fontSize: 13, color: theme.text.secondary, pointerEvents: "none", zIndex: 1, maxWidth: "55%" }}>
+            {[{ c: dot, l: `no harsh · ${STYLE_TRIPS.filter((t) => t[3] === 0).length}` }, { c: HARSH_COLORS[1] ?? dot, l: `1 harsh · ${STYLE_TRIPS.filter((t) => t[3] === 1).length}` }, { c: HARSH_COLORS[2] ?? dot, l: `2+ harsh · ${STYLE_TRIPS.filter((t) => t[3] >= 2).length}` }].map((it) => (
+              <span key={it.l} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 5, background: it.c, display: "inline-block" }} />
+                {it.l}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -1602,10 +1709,10 @@ export default function Dashboard() {
         <DeskWin stamp>
           <Tiles />
           <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gridTemplateRows: "repeat(2, minmax(0, 1fr))", gap: 16, marginTop: 12 }}>
-            <div style={framed}>{fill("Distance, energy and cost", <ComboPanel />)}</div>
-            <div style={framed}>{fill("Battery charge over time", <SocChart />)}</div>
-            <div style={framed}>{fill("Battery health vs warranty", <SohPanel />)}</div>
-            <div style={framed}>{fill("Driving style", <StylePanel />)}</div>
+            <div style={framed}><Section fill><ComboPanel /></Section></div>
+            <div style={framed}><Section fill><SocChart /></Section></div>
+            <div style={framed}><Section fill><SohPanel /></Section></div>
+            <div style={framed}><Section fill><StylePanel /></Section></div>
           </div>
         </DeskWin>
         <DeskWin>
@@ -1626,7 +1733,7 @@ export default function Dashboard() {
         <DeskWin>
           <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16 }}>
             <div style={framed}>{fill("Resting with aircon", <RestPanel />)}</div>
-            <div style={framed}>{fill("Trips", <TripList />)}</div>
+            <div style={framed}><Section fill><TripList /></Section></div>
           </div>
         </DeskWin>
         <DeskWin>
