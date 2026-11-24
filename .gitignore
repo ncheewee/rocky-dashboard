@@ -1,0 +1,32 @@
+# build output
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+
+# ---- private raw data: NEVER commit ----
+# working data dir for the pipeline (XPENG Data Act exports, merged 1 Hz store, receipts, sessions, readings)
+data-raw/*
+!data-raw/README.md
+*.zip
+*.csv
+*.csv.gz
+*.pdf
+receipts/
+xpeng-export/
+exports/
+# credentials / tokens / local env
+.env
+.env.*
+*.pem
+*.key
+secrets*
+# python
+__pycache__/
+*.pyc
+.venv/
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
