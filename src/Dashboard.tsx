@@ -1,4 +1,5 @@
 import { Page, Section, Image, useState, useEffect, useRef, useGrokTheme } from "./kit";
+import type { CSSProperties, ReactNode } from "react";
 import type { DashboardData, Bucket, Day } from "./data/types";
 import raw from "./data/dashboard.json";
 import carPng from "./assets/car-topdown-3x.png";
@@ -25,9 +26,9 @@ const FS = 14;
 
 // Desktop layout switch (23 Nov): set by App from the frame width each render; phones (< 1024 px) keep the original single-column layout untouched
 let DESK = false;
-// desktop chart heights (fixed; tuned so title + 8 tiles + the 2x2 chart grid fill a 1920x1080 window)
+// desktop chart heights (fallback until App measures the first window's 2×2)
 const DH: Record<string, number> = { combo: 230, soc: 245, soh: 200, style: 150 };
-// FIT = chart heights App measured so the 8 tiles + the 2x2 grid fill the frame's height (falls back to DH)
+// FIT = chart heights App measured so the 8 tiles + the 2×2 grid fill window 1 (falls back to DH)
 let FIT: Record<string, number> = {};
 const FIT_MIN: Record<string, number> = { combo: 130, soc: 120, soh: 110, style: 110 };
 const dh = (k: string) => FIT[k] ?? DH[k] ?? 200;
@@ -40,6 +41,15 @@ function useViewportW(): number {
     return () => window.removeEventListener("resize", f);
   }, []);
   return vw;
+}
+function useViewportH(): number {
+  const [vh, setVh] = useState<number>(() => typeof window === "undefined" ? 0 : window.innerHeight);
+  useEffect(() => {
+    const f = () => setVh(window.innerHeight);
+    window.addEventListener("resize", f);
+    return () => window.removeEventListener("resize", f);
+  }, []);
+  return vh;
 }
 
 function isDarkTheme(theme: { bg: { base: string } }): boolean {
@@ -183,7 +193,7 @@ function Tiles() {
   const { ref, w } = useWidth();
   const cols = DESK ? 8 : w > 0 && w < 600 ? 2 : 4;
   return (
-    <div ref={ref} style={{ minWidth: 0 }}>
+    <div ref={ref} style={{ minWidth: 0, flexShrink: DESK ? 0 : undefined }}>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: DESK ? 10 : 12 }}>
         {TILES.map((t) => DESK ? (
           <div key={t.label} style={{ background: t.color + "14", border: `2px solid ${t.color}`, borderRadius: 12, padding: "7px 10px 8px", display: "flex", flexDirection: "column", gap: 3, minWidth: 0, boxSizing: "border-box" }}>
@@ -212,7 +222,7 @@ function Tiles() {
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 13, color: theme.text.tertiary, marginTop: DESK ? 6 : 10 }}>{`XPENG data to ${READINGS_TO} · updated ${UPDATED}`}</div>
+      {!DESK && <div style={{ fontSize: 13, color: theme.text.tertiary, marginTop: 10 }}>{`XPENG data to ${READINGS_TO} · updated ${UPDATED}`}</div>}
     </div>
   );
 }
@@ -667,7 +677,7 @@ function binOf(km: number): number {
 function DistanceCalendar() {
   const theme = useGrokTheme();
   const { ref, w } = useWidth();
-  const wide = w >= 900;
+  const wide = DESK || w >= 900;
   const byDate = new Map<string, Day>();
   DAILY.forEach((d) => byDate.set(d.date, d));
   const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -686,15 +696,15 @@ function DistanceCalendar() {
   if (pair.length < 2 && lastM) pair.push(lastM.m === 12 ? { y: lastM.y + 1, m: 1 } : { y: lastM.y, m: lastM.m + 1 });
   const shown = wide ? pair.slice(-2) : [...months].reverse();
   return (
-    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
-      <div style={wide ? { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 520px))", gap: 48, minWidth: 0 } : { display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
+    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 14, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: 0 }}>
+      <div style={wide ? { display: "grid", gridTemplateColumns: DESK ? "repeat(2, minmax(0, 1fr))" : "repeat(2, minmax(0, 520px))", gap: DESK ? 20 : 48, minWidth: 0, flex: DESK ? 1 : undefined, minHeight: 0 } : { display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
         {shown.map(({ y, m }) => {
           const offset = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
           const dim = new Date(Date.UTC(y, m, 0)).getUTCDate();
           return (
-            <div key={`${y}-${m}`} style={{ minWidth: 0, width: "100%", maxWidth: wide ? undefined : 560 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: theme.text.primary, marginBottom: 8 }}>{`${names[m - 1]} ${y}`}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4 }}>
+            <div key={`${y}-${m}`} style={{ minWidth: 0, width: "100%", maxWidth: wide ? undefined : 560, height: DESK ? "100%" : undefined, minHeight: 0, display: DESK ? "flex" : undefined, flexDirection: DESK ? "column" : undefined }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: theme.text.primary, marginBottom: 8, flex: "none" }}>{`${names[m - 1]} ${y}`}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gridAutoRows: DESK ? "minmax(0, 1fr)" : undefined, gap: 4, flex: DESK ? 1 : undefined, minHeight: 0 }}>
                 {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
                   <div key={`h${i}`} style={{ fontSize: 13, color: theme.text.tertiary, textAlign: "center", paddingBottom: 2 }}>{d}</div>
                 ))}
@@ -710,7 +720,7 @@ function DistanceCalendar() {
                     <div
                       key={key}
                       title={outside ? undefined : km === null ? `${day} ${names[m - 1]}: no data yet` : `${day} ${names[m - 1]}: ${Math.round(km)} km`}
-                      style={{ aspectRatio: "1 / 1", borderRadius: 8, background: style ? style.bg : "transparent", color: style ? style.ink : theme.text.tertiary, border: style ? "none" : `1px solid ${theme.border.subtle}`, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "4px 5px", minWidth: 0, overflow: "hidden", boxSizing: "border-box" }}
+                      style={{ aspectRatio: DESK ? undefined : "1 / 1", height: DESK ? "100%" : undefined, minHeight: 0, borderRadius: 8, background: style ? style.bg : "transparent", color: style ? style.ink : theme.text.tertiary, border: style ? "none" : `1px solid ${theme.border.subtle}`, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: DESK ? "2px 4px" : "4px 5px", minWidth: 0, overflow: "hidden", boxSizing: "border-box" }}
                     >
                       <span style={{ fontSize: 13, lineHeight: "14px", fontWeight: 500 }}>{day}</span>
                       <span style={{ fontSize: 15, lineHeight: "16px", fontWeight: 700, textAlign: "right" }}>{outside ? "" : km === null ? "?" : Math.round(km)}</span>
@@ -810,7 +820,7 @@ function SocChart() {
   );
 }
 
-function ChargeCards() {
+function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
   const theme = useGrokTheme();
   const { ref, w } = useWidth();
   const N = CHARGES.length;
@@ -818,7 +828,8 @@ function ChargeCards() {
   const [dx, setDx] = useState(0);
   const [anim, setAnim] = useState(false);
   const GAP = 8, MS = 250;
-  // card ~82% wide, centred: ~7% of the neighbours peeks in at each edge
+  // deck = phone layout, or desktop window 3: card ~82% wide so neighbours peek in as a swipe hint
+  const deck = swipe || !DESK;
   const cardW = Math.max(1, Math.round(w * 0.82)), side = (w - cardW) / 2;
   const movedC = useRef(false);
   const ease = `transform ${MS}ms cubic-bezier(0.22, 0.8, 0.3, 1)`;
@@ -866,15 +877,15 @@ function ChargeCards() {
     );
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, maxWidth: DESK ? "none" : 560 }}>
-      {!DESK && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, maxWidth: deck && !DESK ? 560 : "none", height: DESK ? "100%" : undefined }}>
+      {deck && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         {arrow(-1)}
-        <span style={{ fontSize: 14, fontWeight: 700, color: theme.text.secondary }}>{`${idx + 1}/${N}`}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: theme.text.secondary }}>{swipe ? `${idx + 1}/${N} · swipe` : `${idx + 1}/${N}`}</span>
         {arrow(1)}
       </div>}
-      <div ref={ref} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ overflow: "hidden", touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", minWidth: 0 }}>
+      <div ref={ref} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ overflow: "hidden", touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", minWidth: 0, flex: DESK ? 1 : undefined, minHeight: 0 }}>
       {w > 0 && (
-      <div style={DESK ? { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 12, alignItems: "start" } : { display: "flex", gap: GAP, alignItems: "flex-start", transform: `translate3d(${side - idx * (cardW + GAP) + dx}px,0,0)`, transition: anim ? ease : "none", willChange: "transform" }}>
+      <div style={deck ? { display: "flex", gap: GAP, alignItems: "flex-start", transform: `translate3d(${side - idx * (cardW + GAP) + dx}px,0,0)`, transition: anim ? ease : "none", willChange: "transform" } : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 12, alignItems: "start" }}>
       {CHARGES.map((ch, k) => {
         const max = 8;
         const cov = Math.min(1, Math.max(0.05, ch.coverage ?? 1));
@@ -883,7 +894,7 @@ function ChargeCards() {
         const hatch = `repeating-linear-gradient(135deg, rgba(130,140,150,0.4) 0 3px, transparent 3px 7px)`;
         const stats = ch.stats;
         return (
-          <div key={ch.label} aria-hidden={!DESK && k !== idx ? true : undefined} onClick={() => { if (!DESK && k !== idx && !movedC.current) go(k); }} style={{ ...(DESK ? { order: N - 1 - k } : { flex: `0 0 ${cardW}px`, width: cardW, opacity: k === idx ? 1 : 0.5, transition: `opacity ${MS}ms`, cursor: k === idx ? "default" : "pointer" }), borderRadius: 16, padding: DESK ? 12 : 14, background: "#27AE60" + "14", border: "2px solid #27AE60", display: "flex", flexDirection: "column", gap: 10, minWidth: 0, boxSizing: "border-box" }}>
+          <div key={ch.label} aria-hidden={deck && k !== idx ? true : undefined} onClick={() => { if (deck && k !== idx && !movedC.current) go(k); }} style={{ ...(deck ? { flex: `0 0 ${cardW}px`, width: cardW, opacity: k === idx ? 1 : 0.5, transition: `opacity ${MS}ms`, cursor: k === idx ? "default" : "pointer" } : { order: N - 1 - k }), borderRadius: 16, padding: deck ? 14 : 12, background: "#27AE60" + "14", border: "2px solid #27AE60", display: "flex", flexDirection: "column", gap: 10, minWidth: 0, boxSizing: "border-box" }}>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: theme.text.primary }}>{`${ch.label} · ${ch.time}`}</span>
               <span style={{ fontSize: 13, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: ch.live ? "#F2994A" : "#2E9E4F", color: ch.live ? "#1F2933" : "#FFFFFF" }}>{ch.tag}</span>
@@ -979,6 +990,7 @@ function kmStyle(v: number, dark = false): { bg: string; ink: string } {
 function DriveHeatmap() {
   const theme = useGrokTheme();
   const { ref, w } = useWidth();
+  const vh = useViewportH();
   const dark = isDarkTheme(theme);
   const labelW = 34;
   const all = Object.keys(DRIVE_MIN).sort();
@@ -1005,7 +1017,8 @@ function DriveHeatmap() {
   const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const weekend = (d: string) => { const wd = new Date(utc(d)).getUTCDay(); return wd === 0 || wd === 6; };
   const tint = "#9B51E0";
-  const rowH = w >= 760 ? 30 : 26;
+  const hoursN = Math.max(1, hMax - hMin + 1);
+  const rowH = DESK ? Math.max(16, Math.min(22, Math.floor((Math.max(vh, 700) - 480) / hoursN) - 3)) : (w >= 760 ? 30 : 26);
   const head = { fontSize: 13, color: theme.text.tertiary, textAlign: "center" as const };
   const weekLabel = (i: number) => {
     const m0 = firstMon + i * 7 * DAY;
@@ -1105,7 +1118,7 @@ function DriveHeatmap() {
   const DATE_H = 26, TOT_H = 24;
   const sep = (x: number) => <div style={{ height: 2, borderRadius: 1, background: theme.bg.base, opacity: 0.7, margin: "3px 0", marginRight: x }} />;
   return (
-    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0, maxWidth: 760 }}>
+    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0, maxWidth: DESK ? "none" : 760, height: DESK ? "100%" : undefined, minHeight: 0 }}>
       <Pills<"eff" | "km" | "min"> options={[{ value: "eff", label: "Efficiency" }, { value: "km", label: "Distance" }, { value: "min", label: "Minutes" }]} value={mode} onChange={(m: "eff" | "km" | "min") => setMode(m)} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         {arrow(-1)}
@@ -1171,7 +1184,7 @@ function SpeedBands() {
   const theme = useGrokTheme();
   const max = Math.max(...SPEED.map((s) => s.eff ?? 0));
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0, height: DESK ? "100%" : undefined, justifyContent: DESK ? "space-between" : undefined }}>
       {SPEED.map((s) => {
         const col = effColor(s.eff);
         return (
@@ -1230,11 +1243,11 @@ function TripList() {
 function StatTiles() {
   const theme = useGrokTheme();
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 160px), 1fr))", gap: 10 }}>
+    <div style={{ display: "grid", gridTemplateColumns: DESK ? `repeat(${STATS.length}, minmax(0, 1fr))` : "repeat(auto-fill, minmax(min(100%, 160px), 1fr))", gap: DESK ? 8 : 10 }}>
       {STATS.map((s, i) => {
         const color = s.flag ? "#F2994A" : ACCENTS[i % ACCENTS.length] ?? "#2F80ED";
         return (
-          <div key={s.label} style={{ borderRadius: 14, padding: "10px 12px", background: color + "14", border: `2px solid ${color}`, display: "flex", flexDirection: "column", gap: 3, minWidth: 0, boxSizing: "border-box" }}>
+          <div key={s.label} style={{ borderRadius: 14, padding: DESK ? "8px 8px 9px" : "10px 12px", background: color + "14", border: `2px solid ${color}`, display: "flex", flexDirection: "column", gap: 3, minWidth: 0, boxSizing: "border-box" }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary }}>{s.label}</span>
             <span style={{ fontSize: DESK ? 18 : 20, fontWeight: 700, color: theme.text.primary, lineHeight: DESK ? "22px" : "24px" }}>{s.value}</span>
             <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "17px" }}>{s.note}</span>
@@ -1352,12 +1365,12 @@ function TyrePanel() {
   const ok = tyreState(9, dark).color, amber = tyreState(TYRE_OK - 0.05, dark).color, red = tyreState(0, dark).color;
   const { ref, w } = useWidth();
   // car image (870x1596, user's SVG rasterised 3x) at ~48% of the panel; wheel boxes in % of the image (SVG viewBox 290x532)
-  const carW = DESK ? Math.min(170, Math.round((w || 360) * 0.38)) : Math.round((w || 360) * 0.48), carH = Math.round(carW * 1596 / 870);
+  const carW = DESK ? Math.min(300, Math.round((w || 480) * 0.42)) : Math.round((w || 360) * 0.48), carH = Math.round(carW * 1596 / 870);
   const side = ((w || 360) - carW - 8) / 2;
   const numFs = Math.max(22, Math.min(34, Math.floor(side / 3.1)));
   const WHEEL: Record<string, { l: number; t: number }> = { FL: { l: 16.2, t: 15.8 }, FR: { l: 71.7, t: 15.8 }, RL: { l: 16.9, t: 67.7 }, RR: { l: 71.0, t: 67.7 } };
   return (
-    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, maxWidth: 480 }}>
+    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, maxWidth: DESK ? "none" : 480, height: DESK ? "100%" : undefined }}>
       <span style={{ fontSize: 13, color: theme.text.tertiary }}>{last && first ? `Cold · ${when(last[0])} ${last[0].slice(11)} · change since ${when(first[0])}` : ""}</span>
       <div style={{ display: "grid", gridTemplateColumns: `minmax(0, 1fr) ${carW}px minmax(0, 1fr)`, gridTemplateRows: "1fr 1fr", columnGap: 4, alignItems: "stretch" }}>
         {TYRE_POS.map((t) => {
@@ -1521,6 +1534,16 @@ function StylePanel() {
 }
 
 const BOXPAD = 14;
+const pane: CSSProperties = { minWidth: 0, minHeight: 0, height: "100%", overflow: "auto" };
+function DeskWin({ stamp, children }: { stamp?: boolean; children?: ReactNode }) {
+  const theme = useGrokTheme();
+  return (
+    <div className="rk-win">
+      <div className="rk-bar" style={{ color: theme.text.tertiary }}>{stamp ? `Updated as of ${UPDATED} · XPENG data to ${READINGS_TO}` : ""}</div>
+      <div className="rk-body">{children}</div>
+    </div>
+  );
+}
 export default function Dashboard() {
   const theme = useGrokTheme();
   const vw = useViewportW();
@@ -1533,11 +1556,10 @@ export default function Dashboard() {
     const keys = ["combo", "soc", "soh", "style"];
     const run = () => {
       const g = gridRef.current;
-      if (!g) return;
+      if (!g || g.clientHeight < 80) return;
       const cells = Array.from(g.children) as HTMLElement[];
-      const top = g.getBoundingClientRect().top + window.scrollY;
-      // two rows, one 20 px gap, ~24 px of frame padding under them
-      const rowH = (window.innerHeight - top - 24 - 20) / 2;
+      const gap = 16;
+      const rowH = (g.clientHeight - gap) / 2;
       const next: Record<string, number> = {};
       keys.forEach((k, i) => {
         const c = cells[i];
@@ -1552,7 +1574,7 @@ export default function Dashboard() {
     };
     run();
     const ro = new ResizeObserver(() => run());
-    ro.observe(document.body);
+    if (gridRef.current) ro.observe(gridRef.current);
     window.addEventListener("resize", run);
     return () => { ro.disconnect(); window.removeEventListener("resize", run); };
   }, [DESK]);
@@ -1591,36 +1613,48 @@ export default function Dashboard() {
       </Page>
     );
   }
-  // desktop: whole rows of two equal columns
-  const cell = { display: "flex", flexDirection: "column", minWidth: 0 } as const;
-  // the first four charts each sit in a faint rounded frame (desktop only)
-  const framed = { ...cell, border: `1px solid ${theme.border.default}`, borderRadius: 14, padding: `${BOXPAD}px ${BOXPAD + 4}px` } as const;
-  const pair = (a: typeof S.combo, b: typeof S.combo) => <div style={{ display: "flex", flexDirection: "column", gap: 28, minWidth: 0 }}>{a}{b}</div>;
-  const row = (a: typeof S.combo, b: typeof S.combo) => (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 28, alignItems: "stretch", minWidth: 0 }}>
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>{a}</div>
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>{b}</div>
-    </div>
-  );
+  const cell = { display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, height: "100%", overflow: "hidden" } as const;
+  const framed = { ...cell, border: `1px solid ${theme.border.default}`, borderRadius: 14, padding: `${BOXPAD}px ${BOXPAD + 4}px`, boxSizing: "border-box" as const };
+  const fill = (heading: string, body: ReactNode) => <Section heading={heading} fill>{body}</Section>;
   return (
     <Page title="Rocky · L03 Dashboard" width="full">
-      {/* #root is capped at 72rem (index.css, as on the original host); a desktop dashboard spans the whole frame */}
-      <div className="rkd" style={{ display: "flex", flexDirection: "column", gap: 28, width: "100%", minWidth: 0 }}>
-        <style>{"#root{max-width:none !important}.rkd section{margin-top:0 !important}"}</style>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
+      <div className="rkd" style={{ width: "100%", minWidth: 0 }}>
+        <DeskWin stamp>
           <Tiles />
-          <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "20px 28px", alignItems: "start", minWidth: 0 }}>
-            <div style={framed}>{S.combo}</div>
-            <div style={framed}>{S.soc}</div>
-            <div style={framed}>{S.soh}</div>
-            <div style={framed}>{S.style}</div>
+          <div ref={gridRef} style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gridTemplateRows: "repeat(2, minmax(0, 1fr))", gap: 16, marginTop: 12 }}>
+            <div style={framed}>{fill("Distance, energy and cost", <ComboPanel />)}</div>
+            <div style={framed}>{fill("Battery charge over time", <SocChart />)}</div>
+            <div style={framed}>{fill("Battery health vs warranty", <SohPanel />)}</div>
+            <div style={framed}>{fill("Driving style", <StylePanel />)}</div>
           </div>
-        </div>
-        {row(S.heat, pair(S.cal, S.speed))}
-        {S.charges}
-        {row(S.rest, S.trips)}
-        {row(S.tyre, S.stats)}
-        {S.insights}
+        </DeskWin>
+        <DeskWin>
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(0, 3fr)", gap: 24 }}>
+            <div style={pane}>{fill("Driving Heatmap", <DriveHeatmap />)}</div>
+            <div style={{ minWidth: 0, minHeight: 0, display: "grid", gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16 }}>
+              <div style={pane}>{fill("Daily distance", <DistanceCalendar />)}</div>
+              <div style={pane}>{fill("Efficiency by speed", <SpeedBands />)}</div>
+            </div>
+          </div>
+        </DeskWin>
+        <DeskWin>
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 24 }}>
+            <div style={pane}>{fill("Charging sessions", <ChargeCards swipe />)}</div>
+            <div style={pane}>{fill("Tyre pressure", <TyrePanel />)}</div>
+          </div>
+        </DeskWin>
+        <DeskWin>
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 24 }}>
+            <div style={pane}>{fill("Resting with aircon", <RestPanel />)}</div>
+            <div style={pane}>{fill("Trips", <TripList />)}</div>
+          </div>
+        </DeskWin>
+        <DeskWin>
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+            <Section heading="Other Highlights"><StatTiles /></Section>
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>{fill("Insights", <InsightChips />)}</div>
+          </div>
+        </DeskWin>
       </div>
     </Page>
   );

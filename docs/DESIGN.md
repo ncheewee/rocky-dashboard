@@ -26,12 +26,12 @@ Sections are 64 px apart (mobile), heading → body 16 px.
 Charging sessions (swipe cards) · Battery health vs warranty · Daily distance · Resting with aircon · Tyre pressure ·
 Driving style · Efficiency by speed · Trips · Driving and car stats · Insights.
 
-**Desktop (≥ 1024 px):**
-- Tiles in one 8×1 row.
-- 2×2 framed grid (1 px `border.default`, radius 14): Distance/energy/cost · Battery charge | Battery health · Driving style.
-  Tiles + the 2×2 must fit the first window at 1920×950 (chart heights are computed from the window height).
-- Below, rows of two equal columns: Heatmap | (Daily distance + Efficiency by speed) · Charging sessions (grid) ·
-  Resting | Trips · Tyres | Stats · Insights.
+**Desktop (≥ 1024 px):** five full-viewport windows that snap (`scroll-snap-type: y mandatory`, `scroll-snap-stop: always`). The reader cannot rest between windows. Phone layout is unchanged.
+- Window 1: “Updated as of” top left, light/dark toggle top right; 8 tiles in one row; four equal framed charts filling the rest (Distance/energy/cost · Battery charge | Battery health · Driving style). Chart heights are measured so the 2×2 fills the leftover height at 1920×950.
+- Window 2: heatmap left 40%; right 60% split into Daily distance (top) and Efficiency by speed (bottom).
+- Window 3: charging sessions 50% left (swipe cards with a peek of the neighbours) · tyre pressure 50% right.
+- Window 4: Resting with aircon | Trips, equal columns.
+- Window 5: “Other Highlights” (the driving/car stats) in one row, then Insights.
 
 ## Charts and semantics
 
@@ -60,4 +60,4 @@ the "0" calendar legend swatch uses `bg.subtle`. Change these deliberately, not 
 ## Verify before a UI PR
 
 `npm run build && npm run preview` (http://localhost:4173/rocky-dashboard/), then check at 412×915 (light + dark, full page) and 1920×950 (light + dark):
-no horizontal scroll, min font ≥ 13 px, the four framed charts fully visible in the first window at 1920×950.
+no horizontal scroll, min font ≥ 13 px, five snap windows on desktop (wheel/trackpad lands on a window, not between them), phone still a single scrolling column.

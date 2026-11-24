@@ -55,12 +55,13 @@ export function Page({ title, width = "wide", children }: { title: string; width
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 // Section: a 24/30 semibold heading, the body 16 px under it.
-export function Section({ heading, children }: { heading?: string; children?: ReactNode }) {
+// `fill` (desktop windows only) stretches the section to its cell so a chart can use the leftover height.
+export function Section({ heading, children, fill = false }: { heading?: string; children?: ReactNode; fill?: boolean }) {
   const theme = useGrokTheme();
   return (
-    <section id={heading ? slug(heading) : undefined}>
-      {heading && <h2 dir="auto" style={{ margin: 0, fontFamily: theme.font.family, fontSize: 24, lineHeight: "30px", letterSpacing: "-0.25px", fontWeight: 600, color: theme.text.primary }}>{heading}</h2>}
-      <div style={{ marginTop: heading ? 16 : 0 }}>{children}</div>
+    <section id={heading ? slug(heading) : undefined} style={fill ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } : undefined}>
+      {heading && <h2 dir="auto" style={{ margin: 0, flex: "none", fontFamily: theme.font.family, fontSize: 24, lineHeight: "30px", letterSpacing: "-0.25px", fontWeight: 600, color: theme.text.primary }}>{heading}</h2>}
+      <div style={{ marginTop: heading ? 16 : 0, ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>{children}</div>
     </section>
   );
 }
