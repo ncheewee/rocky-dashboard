@@ -20,3 +20,36 @@ html[data-theme="dark"], html[data-theme="dark"] body { background: #070707; col
 }
 .theme-toggle:focus-visible { outline: 2px solid var(--tt-fg); outline-offset: 2px; }
 @media print { .theme-toggle { display: none; } }
+
+/* Desktop only (≥ 1024 px): five full-viewport windows that snap. Phones keep the padded column above. */
+@media (min-width: 1024px) {
+  html { scroll-snap-type: y mandatory; }
+  body { padding: 0; }
+  #root { max-width: none; }
+  .rk-win {
+    height: 100vh;
+    height: 100dvh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 28px 16px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .rk-bar {
+    height: 36px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    padding-right: 48px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .rk-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .theme-toggle { top: 12px; right: 22px; bottom: auto; }
+}
+@media print {
+  html { scroll-snap-type: none; }
+  .rk-win { height: auto; overflow: visible; scroll-snap-align: none; scroll-snap-stop: normal; }
+}

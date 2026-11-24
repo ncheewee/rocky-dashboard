@@ -10,7 +10,8 @@ const stored = (): ThemeKind | null => {
   try { const v = localStorage.getItem(KEY); return v === "light" || v === "dark" ? v : null; } catch { return null; }
 };
 
-// Light/dark follows the system until the reader picks one with the toggle (bottom-right); the pick is remembered.
+// Light/dark follows the system until the reader picks one with the toggle; the pick is remembered.
+// The button sits bottom-right on a phone and top-right on desktop (index.css).
 function App() {
   const [chosen, setChosen] = useState<ThemeKind | null>(stored);
   const [sys, setSys] = useState<ThemeKind>(systemDark() ? "dark" : "light");
