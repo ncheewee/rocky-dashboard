@@ -28,8 +28,8 @@ Charging sessions (swipe cards) · Battery health vs warranty · Daily distance 
 Driving style · Efficiency by speed · Trips · Driving and car stats · Insights.
 
 **Desktop (≥ 1024 px):** five full-viewport windows that snap (`scroll-snap-type: y mandatory`, `scroll-snap-stop: always`). The reader cannot rest between windows. Phone layout is unchanged. Every segment uses the same 1 px framed card as the window-1 charts.
-- Window 1: “Updated as of” top left, light/dark toggle top right; 8 tiles in one row; four equal framed charts filling the rest (Distance/energy/cost · Battery charge | Battery health · Driving style). Chart SVG height is the leftover flex space so x-axes stay visible. Filter chips sit on the heading row (right of the title) so the y-axis can grow. Daily cost labels stay horizontal above the dot. Battery charge/health legends stack top-right inside the plot. Driving-style 2×2 tiles overlay the scatter’s empty top-right (no side column).
-- Window 2: heatmap left 40% (fits the pane, no up/down scroll, week swipe is left/right); right 60% split into Daily distance (top) and Efficiency by speed (bottom). Daily-distance km labels stay inside the day cells, inset from the bottom edge. All six speed bands (including 80–100 and 100+) fit.
+- Window 1: “Updated as of” top left, light/dark toggle top right; 8 tiles in one row; four equal framed charts filling the rest (Distance/energy/cost · Battery charge | Battery health · Driving style). Chart SVG height is the leftover flex space so x-axes stay visible. Filter chips sit top-right of the heading, above the legend. Daily cost labels stay horizontal above the dot. Battery-charge legend is a 2-column block on the heading row (not over the line). Battery-health legend is two right-justified lines under the view chips. Driving-style scatter is full width; the four style figures sit in one row under the plot (never over the dots).
+- Window 2: heatmap left 40% (fits the pane, no up/down scroll, week swipe is left/right); Efficiency / Distance / Minutes chips sit on the heading row so the hour axis can grow. Right 60% split into Daily distance (top) and Efficiency by speed (bottom). Daily-distance day number and km sit on one row at the top of the cell. Speed bands: label glued to its bar; leftover space goes between bands.
 - Window 3: charging sessions 50% left (swipe cards stretch to the pane height, neighbours peek; kW axis on the right of the profile; stats block centred with equal inset) · tyre pressure 50% right (legend centred under the car; no placard line; per-corner cold-bar sparkline outside the numbers, with a date x-axis). No mini-map of charge location — sessions have no GPS (hard rule 8).
 - Window 4: Resting with aircon | Trips, equal columns, no inner scroll. Resting filters: Latest 10 / Longest 10; the five rest numbers stay on one row. Trips: colour+range legend (kWh/100 km) top-right of the heading row, not a “coloured chip” footnote.
 - Window 5: “Other Highlights” (the driving/car stats) in one row, then Insights filling the rest of the window.
@@ -37,11 +37,11 @@ Driving style · Efficiency by speed · Trips · Driving and car stats · Insigh
 ## Charts and semantics
 
 - **Battery charge over time:** Y 0–108%. Legend Charging / Driving / Parked (awake) / Asleep (no data, faint dotted).
-  Weekends tinted purple (`#6C3FA0` light ink / `#C9A7F5` dark). Desktop: legend stacked top-right inside the plot.
+  Weekends tinted purple (`#6C3FA0` light ink / `#C9A7F5` dark). Desktop: 2-column legend on the heading row, not over the plot.
 - **Battery health:** measured capacity ÷ rated 71.2 kWh = 100%. Uncertainty ribbon from whole-% SOC (±1 pt).
   Warranty: 70% at 8 yr / 160,000 km, 62% at 10 yr / 200,000 km (extended); red zone below 62%. Views: 10 years / First 3 months.
-  Desktop: view chips on the heading row; legend stacked top-right inside the plot.
-- **Distance, energy and cost:** Daily / Weekly / Monthly pills on the heading row (desktop); km + kWh bars (dashed = pending estimate); S$ smooth
+  Desktop: view chips on the heading row; two-line legend right-justified under the chips.
+- **Distance, energy and cost:** Daily / Weekly / Monthly pills top-right of the heading, above the km / kWh / S$ legend (desktop); km + kWh bars (dashed = pending estimate); S$ smooth
   monotone curve with per-point labels (daily labels horizontal above the dot). Pan/pinch/zoom gestures; never scrolls the page sideways.
 - **Driving Heatmap:** one Mon–Sun week, swipe or ‹ ›; drives as blocks at exact times; Efficiency / Distance / Minutes.
 - **Tyres (cold, bar):** green ≥ 2.6 · amber 2.5–2.59 · red < 2.5. Desktop: colour legend centred under the car, no placard line; sparkline of cold-bar history outside each corner’s numbers, with a date x-axis. Phone still shows placard 2.6 cold. Keep `src/assets/car-topdown-3x.png`.

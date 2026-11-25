@@ -2,6 +2,9 @@
 
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
+## 2026-11-25
+- [grok] Desktop legends: combo filters above the km/kWh/S$ legend; charge legend 2-col on the heading (off the line); health legend two lines, right-justified; driving-style tiles in a row under the scatter. Heatmap chips on the title row; calendar km at the top of each cell; speed-band label glued to its bar with space between bands.
+
 ## 2026-11-24
 - [grok] Desktop chrome: window-1 chips on the title row, daily cost labels horizontal, charge/health legends stacked inside the plot, driving-style tiles overlay the scatter; calendar km inset; all six speed bands visible; charging kW axis + centred stats; tyre sparklines with date axis; trips colour/range legend. Phone unchanged.
 - [grok] Desktop fit: x-axes visible on the four window-1 charts; heatmap/calendar/rest/trips/insights clip to the window (no inner up/down scroll); all segments framed; charging cards stretch; tyre legend centred, placard line dropped; rest filters Latest 10 / Longest 10 with numbers on one row.
