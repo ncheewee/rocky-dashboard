@@ -30,7 +30,9 @@ The UI only reads `src/data/dashboard.json`. It is generated from private raw fi
 pip install -r scripts/requirements.txt
 # 1. new XPENG Data Act export: drop the zip into data-raw/exports/, then
 python3 scripts/parse_xpeng_export.py
-# 2. new charging receipts: add them to data-raw/sessions.json (one object per session; dedupe on operator + session_id)
+# 2. new charging receipts: add them to data-raw/sessions.json (one object per session; dedupe on operator + session_id),
+#    save the MNL receipt PDF in data-raw/receipts/, then copy its site (development name only, e.g. "Nuovo"):
+python3 scripts/parse_mnl_receipt.py --apply
 # 3. derive chart data
 python3 scripts/build_dashboard_data.py
 # 4. write the UI JSON (Monday refresh: --today = the Sunday before)

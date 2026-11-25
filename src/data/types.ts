@@ -4,7 +4,7 @@
 export type Bucket = { label: string; short?: string; km: number | null; kwh: number; kwhEst: number; cost: number; costEst: number; pending: boolean };
 export type Day = Bucket & { date: string; short: string; src: string };
 export type SohPoint = { date: string; rel: number; pctNew: number; kwh: number; lo: number; hi: number };
-export type Charge = { label: string; time: string; tag: string; live: boolean; socFrom: number; socTo: number; socNote: string; profile: number[]; stats: [string, string][]; coverage?: number; finalPending?: boolean };
+export type Charge = { label: string; time: string; tag: string; live: boolean; socFrom: number; socTo: number; socNote: string; profile: number[]; stats: [string, string][]; coverage?: number; finalPending?: boolean; site?: string /* development name only, e.g. "Nuovo" */ };
 export type SpeedBin = { band: string; time: number; km: number; eff: number | null };
 export type Trip = { when: string; km: number; min: number; eff: number; max: number; avg: number };
 export type Tile = { icon: string; color: string; value: string; unit?: string; label: string; note: string };

@@ -19,6 +19,12 @@ if (d.schemaVersion !== 1) bad.push(`schemaVersion ${d.schemaVersion} (UI expect
 if (d.SOH_RATED_KWH !== 71.2) bad.push("SOH_RATED_KWH must be 71.2 (health = capacity / rated)");
 if (d.TILES?.length !== 8) bad.push("TILES must have 8 entries (8x1 desktop row)");
 if (d.DAILY?.some((r) => r.date > d.TODAY)) bad.push("DAILY has days after TODAY");
+// CHARGES[].site (optional): development name only - no digits (postal/unit/receipt no.), no street words, no "#"
+for (const c of d.CHARGES ?? []) {
+  if (c.site === undefined) continue;
+  if (typeof c.site !== "string" || c.site.length > 60 || /[0-9#]/.test(c.site) || /\b(road|rd|street|avenue|ave|drive|lane|jalan|lorong|blk|block|unit|level)\b/i.test(c.site))
+    bad.push(`CHARGES site "${c.site}" is not a plain development name`);
+}
 if (/(password|token|secret|api[_-]?key)/i.test(JSON.stringify(d))) bad.push("looks like a credential in the data");
 if (bad.length) { console.error("dashboard.json contract check FAILED:\n- " + bad.join("\n- ")); process.exit(1); }
 console.log(`dashboard.json OK: schema ${d.schemaVersion}, ${d.DAILY.length} days through ${d.TODAY}, updated ${d.UPDATED}`);

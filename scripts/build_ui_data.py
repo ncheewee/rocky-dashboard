@@ -90,6 +90,8 @@ def build(data, sessions, today, updated):
         else:
             st = [["Billed", f"{kwh:.2f} kWh"], ["Cost", f"S${sgd:.2f}"], ["Into pack", f"{g(c['kwh_into_pack'])} kWh"], ["Efficiency", f"{g(c['efficiency_pct'])}%"], ["Peak / avg", f"{g(c['peak_kw'])} / {g(c['avg_kw'])} kW"], ["Charging", f"{g(c['duration_h'])} h"], ["Pack max", f"{g(c['pack_temp_max_c'])} °C"], ["Per 100%", f"{g(c['implied_capacity_kwh'])} kWh"]]
             row.update({"time": f"{hm(c['start'])}–{hm(c['end'])}", "socNote": ""})
+        sites = sorted({s["site"] for s in ss if s.get("site")})   # development name only (parse_mnl_receipt.py)
+        if sites: row["site"] = " / ".join(sites)
         row.update({"profile": prof, "stats": st})
         rows.append(row)
     C["CHARGES"] = rows
