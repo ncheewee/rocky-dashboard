@@ -300,7 +300,6 @@ function ComboPanel() {
   const [period, setPeriodRaw] = useState<"month" | "week" | "day">("day");
   const [view, setView] = useState<View | null>(null);
   const [panning, setPanning] = useState(false);
-  const [tip, setTip] = useState<{ i: number; x: number; y: number } | null>(null);
   const { ref, w, h } = useWidth();
   const narrow = w < 560;
   const all: Bucket[] = period === "month" ? MONTHLY : period === "week" ? WEEKLY : DAILY;
@@ -399,21 +398,8 @@ function ComboPanel() {
       if (e.pointerType === "mouse") { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ } }
     }
   };
-  const onMove = (e: { pointerId: number; clientX: number; clientY: number; currentTarget: HTMLDivElement; pointerType?: string }) => {
-    if (!ptrs.current.has(e.pointerId)) {
-      if (DESK && e.pointerType === "mouse" && !pan.current.on) {
-        const x = localX(e.clientX);
-        const { L: l, pw: p, n: nn } = geo.current;
-        if (x < l || x > l + p) { setTip(null); return; }
-        const vv = viewRef.current;
-        const sp = vv.hi - vv.lo;
-        const i = Math.round(vv.lo + ((x - l) / p) * sp - 0.5);
-        if (i < 0 || i >= nn) { setTip(null); return; }
-        const y = e.clientY - (box.current ? box.current.getBoundingClientRect().top : 0);
-        setTip({ i, x: l + (i + 0.5 - vv.lo) * (p / sp), y });
-      }
-      return;
-    }
+  const onMove = (e: { pointerId: number; clientX: number; clientY: number; currentTarget: HTMLDivElement }) => {
+    if (!ptrs.current.has(e.pointerId)) return;
     const x = localX(e.clientX);
     ptrs.current.set(e.pointerId, { x, y: e.clientY });
     const s = g.current;
@@ -428,7 +414,6 @@ function ComboPanel() {
     if (s.mode === "pan") {
       const sp = s.v0.hi - s.v0.lo;
       if (Math.abs(x - s.x0) > 3) s.moved = true;
-      setTip(null);
       const p = pan.current;
       p.lo = clampG(s.v0.lo - ((x - s.x0) / geo.current.pw) * sp, sp).lo;
       p.sp = sp;
@@ -527,7 +512,6 @@ function ComboPanel() {
             onPointerMove={onMove}
             onPointerUp={onUp}
             onPointerCancel={onUp}
-            onPointerLeave={() => setTip(null)}
             style={{ position: "relative", touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: zoomable ? "grab" : "default", width: w, height: H }}
           >
             {!isDefault && (
@@ -609,14 +593,6 @@ function ComboPanel() {
               </g>
             )}
           </svg>
-          {DESK && tip && all[tip.i] && (() => {
-            const r = all[tip.i]!;
-            const etot = r.kwh + r.kwhEst;
-            const km = r.km === null ? "– km" : `${Math.round(r.km)} km`;
-            const kwh = `${r.kwhEst > 0 ? "≈" : ""}${etot === 0 ? "0" : etot.toFixed(etot >= 10 ? 0 : 1)} kWh`;
-            const cost = r.cost + r.costEst === 0 ? "S$0" : costLabel(r);
-            return <HoverTip x={tip.x} y={tip.y} boxW={w} boxH={H} lines={[r.label, `${km} · ${kwh}`, cost]} />;
-          })()}
           </div>
         )}
       </div>
@@ -1230,7 +1206,7 @@ function DriveHeatmap() {
             onPointerEnter={(e) => { if (e.pointerType === "mouse") { setSel(i); if (DESK && ref.current) { const b = ref.current.getBoundingClientRect(); setTip({ x: e.clientX - b.left, y: e.clientY - b.top, lines: curText(r) }); } } }}
             onPointerMove={(e) => { if (DESK && e.pointerType === "mouse" && ref.current) { const b = ref.current.getBoundingClientRect(); setTip({ x: e.clientX - b.left, y: e.clientY - b.top, lines: curText(r) }); } }}
             onPointerLeave={() => { if (DESK) setTip(null); }}
-            style={{ position: "absolute", left: 1, right: 1, top, height: hgt, borderRadius: 5, background: s.bg, color: s.ink, fontSize: 13, fontWeight: 700, lineHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: on ? `0 0 0 2px ${theme.text.primary}` : `0 0 0 1px ${theme.bg.base}`, zIndex: on ? 2 : 1, cursor: "pointer" }}>{hgt >= 17 ? label : ""}</div>
+            style={{ position: "absolute", left: 1, right: 1, top, height: hgt, borderRadius: 5, background: s.bg, color: s.ink, fontSize: 13, fontWeight: 700, lineHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: on ? `0 0 0 2px ${theme.text.primary}` : `0 0 0 1px ${theme.bg.base}`, zIndex: on ? 2 : 1, cursor: "pointer" }}>{!DESK && hgt >= 17 ? label : ""}</div>
         );
       })}
     </div>
@@ -1251,11 +1227,13 @@ function DriveHeatmap() {
         <span style={{ fontSize: 16, fontWeight: 700, color: theme.text.primary }}>{weekLabel(shown)}</span>
         {arrow(1)}
       </div>
-      <div aria-live="polite" style={{ minHeight: DESK ? 22 : 40, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "2px 10px", fontSize: 14, color: theme.text.secondary, flex: "none" }}>
+      {!DESK && (
+      <div aria-live="polite" style={{ minHeight: 40, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "2px 10px", fontSize: 14, color: theme.text.secondary, flex: "none" }}>
         {curR && <span style={{ width: 14, height: 14, borderRadius: 4, background: blockStyle(curR).bg, display: "inline-block", flexShrink: 0 }} />}
         {curR && <span style={{ fontWeight: 800, color: theme.text.primary }}>{curText(curR)[0]}</span>}
         {curR && <span>{curText(curR)[1]}</span>}
       </div>
+      )}
       <div ref={gridBox.ref} style={{ flex: DESK ? 1 : undefined, minHeight: DESK ? 0 : undefined, overflow: "hidden" }}>
       {w > 0 && (
         <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ display: "grid", gridTemplateColumns: `${labelW}px minmax(0, 1fr)`, columnGap: 3, rowGap: 3, touchAction: DESK ? "pan-x" : "pan-y", userSelect: "none", WebkitUserSelect: "none", width: w }}>
