@@ -215,10 +215,11 @@ function Tiles() {
   );
 }
 
-function ChartLegend({ items, stack = false }: { items: { kind: "bar" | "line" | "dash" | "dot" | "box" | "band"; color: string; label: string }[]; stack?: boolean }) {
+function ChartLegend({ items, stack = false, cols, align = "start" }: { items: { kind: "bar" | "line" | "dash" | "dot" | "box" | "band"; color: string; label: string }[]; stack?: boolean; cols?: number; align?: "start" | "end" }) {
   const theme = useGrokTheme();
+  const end = align === "end";
   return (
-    <div style={{ display: "flex", flexDirection: stack ? "column" : "row", flexWrap: stack ? "nowrap" : "wrap", gap: stack ? 4 : "6px 16px", alignItems: stack ? "flex-start" : "center", fontSize: FS, color: theme.text.secondary }}>
+    <div style={cols ? { display: "grid", gridTemplateColumns: `repeat(${cols}, auto)`, gap: "4px 16px", justifyContent: end ? "end" : "start", justifyItems: end ? "end" : "start", fontSize: FS, color: theme.text.secondary } : { display: "flex", flexDirection: stack ? "column" : "row", flexWrap: stack ? "nowrap" : "wrap", gap: stack ? 4 : "6px 16px", alignItems: stack ? (end ? "flex-end" : "flex-start") : "center", fontSize: FS, color: theme.text.secondary }}>
       {items.map((it) => (
         <span key={it.label} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {it.kind === "bar" && <span style={{ width: 12, height: 12, borderRadius: 3, background: it.color, display: "inline-block" }} />}
@@ -237,17 +238,9 @@ function ChartLegend({ items, stack = false }: { items: { kind: "bar" | "line" |
 function HeadRow({ title, children }: { title: string; children?: ReactNode }) {
   const theme = useGrokTheme();
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", flex: "none", minWidth: 0 }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap", flex: "none", minWidth: 0 }}>
       <h2 dir="auto" style={{ margin: 0, flex: "none", fontFamily: theme.font.family, fontSize: 24, lineHeight: "30px", letterSpacing: "-0.25px", fontWeight: 600, color: theme.text.primary }}>{title}</h2>
       {children && <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0 }}>{children}</div>}
-    </div>
-  );
-}
-
-function ChartLegendOverlay({ items }: { items: { kind: "bar" | "line" | "dash" | "dot" | "box" | "band"; color: string; label: string }[] }) {
-  return (
-    <div style={{ position: "absolute", top: 4, right: 8, zIndex: 1, pointerEvents: "none" }}>
-      <ChartLegend items={items} stack />
     </div>
   );
 }
@@ -466,8 +459,10 @@ function ComboPanel() {
     <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
       {DESK ? (
         <HeadRow title="Distance, energy and cost">
-          {comboPills}
-          <ChartLegend items={comboLegend} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+            {comboPills}
+            <ChartLegend items={comboLegend} />
+          </div>
         </HeadRow>
       ) : (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", flex: "none" }}>
@@ -625,7 +620,12 @@ function SohPanel() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
       {DESK ? (
-        <HeadRow title="Battery health vs warranty">{sohPills}</HeadRow>
+        <HeadRow title="Battery health vs warranty">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+            {sohPills}
+            <ChartLegend items={sohLegend} stack align="end" />
+          </div>
+        </HeadRow>
       ) : (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", flex: "none" }}>
         {sohPills}
@@ -633,7 +633,6 @@ function SohPanel() {
       </div>
       )}
       <div ref={ref} style={{ position: "relative", width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
-        {DESK && <ChartLegendOverlay items={sohLegend} />}
         {w > 0 && (!DESK || h > 0) && (
           <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Battery health against the warranty line">
             <defs>
@@ -743,10 +742,10 @@ function DistanceCalendar() {
                     <div
                       key={key}
                       title={outside ? undefined : km === null ? `${day} ${names[m - 1]}: no data yet` : `${day} ${names[m - 1]}: ${Math.round(km)} km`}
-                      style={{ aspectRatio: DESK ? undefined : "1 / 1", height: DESK ? "100%" : undefined, minHeight: 0, borderRadius: 8, background: style ? style.bg : "transparent", color: style ? style.ink : theme.text.tertiary, border: style ? "none" : `1px solid ${theme.border.subtle}`, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: DESK ? "2px 3px 8px" : "4px 5px", minWidth: 0, overflow: "hidden", boxSizing: "border-box" }}
+                      style={{ aspectRatio: DESK ? undefined : "1 / 1", height: DESK ? "100%" : undefined, minHeight: 0, borderRadius: 8, background: style ? style.bg : "transparent", color: style ? style.ink : theme.text.tertiary, border: style ? "none" : `1px solid ${theme.border.subtle}`, display: "flex", flexDirection: DESK ? "row" : "column", justifyContent: "space-between", alignItems: DESK ? "flex-start" : undefined, padding: DESK ? "5px 6px" : "4px 5px", minWidth: 0, overflow: "hidden", boxSizing: "border-box" }}
                     >
                       <span style={{ fontSize: 13, lineHeight: "13px", fontWeight: 500 }}>{day}</span>
-                      <span style={{ fontSize: DESK ? 13 : 15, lineHeight: DESK ? "13px" : "16px", fontWeight: 700, textAlign: "right", marginBottom: DESK ? 2 : 0 }}>{outside ? "" : km === null ? "?" : Math.round(km)}</span>
+                      <span style={{ fontSize: DESK ? 13 : 15, lineHeight: DESK ? "13px" : "16px", fontWeight: 700, textAlign: "right" }}>{outside ? "" : km === null ? "?" : Math.round(km)}</span>
                     </div>
                   );
                 })}
@@ -798,13 +797,16 @@ function SocChart() {
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
-      {DESK ? <HeadRow title="Battery charge over time" /> : (
+      {DESK ? (
+        <HeadRow title="Battery charge over time">
+          <ChartLegend items={socLegend} cols={2} align="end" />
+        </HeadRow>
+      ) : (
       <div style={{ flex: "none" }}>
       <ChartLegend items={socLegend} />
       </div>
       )}
       <div ref={ref} style={{ position: "relative", width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
-        {DESK && <ChartLegendOverlay items={socLegend} />}
         {w > 0 && (!DESK || h > 0) && (
           <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Battery charge over time">
             {[0, 25, 50, 75, 100].map((v) => (
@@ -1157,9 +1159,10 @@ function DriveHeatmap() {
     return mode === "km" ? ds.reduce((a, r) => a + r[3], 0).toFixed(0) : `${ds.reduce((a, r) => a + r[4], 0)}`;
   };
   const sep = (x: number) => <div style={{ height: 2, borderRadius: 1, background: theme.bg.base, opacity: 0.7, margin: "3px 0", marginRight: x }} />;
+  const heatPills = <Pills<"eff" | "km" | "min"> options={[{ value: "eff", label: "Efficiency" }, { value: "km", label: "Distance" }, { value: "min", label: "Minutes" }]} value={mode} onChange={(m: "eff" | "km" | "min") => setMode(m)} />;
   return (
     <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, maxWidth: DESK ? "none" : 760, height: DESK ? "100%" : undefined, minHeight: 0, overflow: DESK ? "hidden" : undefined }}>
-      <div style={{ flex: "none" }}><Pills<"eff" | "km" | "min"> options={[{ value: "eff", label: "Efficiency" }, { value: "km", label: "Distance" }, { value: "min", label: "Minutes" }]} value={mode} onChange={(m: "eff" | "km" | "min") => setMode(m)} /></div>
+      {DESK ? <HeadRow title="Driving Heatmap">{heatPills}</HeadRow> : <div style={{ flex: "none" }}>{heatPills}</div>}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flex: "none" }}>
         {arrow(-1)}
         <span style={{ fontSize: 16, fontWeight: 700, color: theme.text.primary }}>{weekLabel(shown)}</span>
@@ -1226,17 +1229,17 @@ function SpeedBands() {
   const theme = useGrokTheme();
   const max = Math.max(...SPEED.map((s) => s.eff ?? 0));
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 4 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined }}>
+    <div style={{ display: "flex", flexDirection: "column", justifyContent: DESK ? "space-between" : undefined, gap: DESK ? 0 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined }}>
       {SPEED.map((s) => {
         const col = effColor(s.eff);
         return (
-          <div key={s.band} style={{ display: "flex", flexDirection: "column", gap: DESK ? 2 : 4, minWidth: 0, flex: DESK ? "1 1 0" : undefined, minHeight: DESK ? 0 : undefined, justifyContent: DESK ? "center" : undefined }}>
+          <div key={s.band} style={{ display: "flex", flexDirection: "column", gap: DESK ? 2 : 4, minWidth: 0, flex: "none" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 14 }}>
               <span style={{ fontWeight: 700, color: theme.text.primary }}>{`${s.band.replace("-", "–")} km/h`}</span>
               <span style={{ color: theme.text.tertiary, fontSize: 13 }}>{`${s.km}% of km · ${s.time}% of time`}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ flex: 1, height: DESK ? 14 : 22, borderRadius: 6, background: theme.bg.subtle, overflow: "hidden", minWidth: 0 }}>
+              <div style={{ flex: 1, height: DESK ? 16 : 22, borderRadius: 6, background: theme.bg.subtle, overflow: "hidden", minWidth: 0 }}>
                 {s.eff !== null && <div style={{ width: `${(s.eff / max) * 100}%`, height: "100%", background: col.bg, borderRadius: 6 }} />}
               </div>
               <span style={{ width: 52, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.text.primary, flexShrink: 0 }}>{s.eff === null ? "–" : s.eff}</span>
@@ -1615,25 +1618,16 @@ function StylePanel() {
       <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, height: "100%", minHeight: 0 }}>
         <HeadRow title="Driving style">{pillEl}</HeadRow>
         {detailEl}
-        <div style={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          {chartEl}
-          <div style={{ position: "absolute", top: 4, right: 8, width: "min(248px, 42%)", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, pointerEvents: "none", zIndex: 1 }}>
-            {tiles.map((t) => (
-              <div key={t.label} style={{ borderRadius: 12, padding: "5px 8px 6px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary, lineHeight: "16px" }}>{t.label}</span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: theme.text.primary, lineHeight: "20px" }}>{t.value}</span>
-                <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "15px" }}>{t.note}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ position: "absolute", left: 50, bottom: 36, display: "flex", flexWrap: "wrap", gap: "4px 12px", alignItems: "center", fontSize: 13, color: theme.text.secondary, pointerEvents: "none", zIndex: 1, maxWidth: "55%" }}>
-            {[{ c: dot, l: `no harsh · ${STYLE_TRIPS.filter((t) => t[3] === 0).length}` }, { c: HARSH_COLORS[1] ?? dot, l: `1 harsh · ${STYLE_TRIPS.filter((t) => t[3] === 1).length}` }, { c: HARSH_COLORS[2] ?? dot, l: `2+ harsh · ${STYLE_TRIPS.filter((t) => t[3] >= 2).length}` }].map((it) => (
-              <span key={it.l} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 5, background: it.c, display: "inline-block" }} />
-                {it.l}
-              </span>
-            ))}
-          </div>
+        {chartEl}
+        {legendEl}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8, flex: "none", minWidth: 0 }}>
+          {tiles.map((t) => (
+            <div key={t.label} style={{ borderRadius: 12, padding: "6px 8px 7px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", gap: 1, minWidth: 0, boxSizing: "border-box" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary, lineHeight: "16px" }}>{t.label}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: theme.text.primary, lineHeight: "20px" }}>{t.value}</span>
+              <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "15px" }}>{t.note}</span>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -1717,7 +1711,7 @@ export default function Dashboard() {
         </DeskWin>
         <DeskWin>
           <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(0, 3fr)", gap: 16 }}>
-            <div style={framed}>{fill("Driving Heatmap", <DriveHeatmap />)}</div>
+            <div style={framed}><Section fill><DriveHeatmap /></Section></div>
             <div style={{ minWidth: 0, minHeight: 0, display: "grid", gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16 }}>
               <div style={framed}>{fill("Daily distance", <DistanceCalendar />)}</div>
               <div style={framed}>{fill("Efficiency by speed", <SpeedBands />)}</div>
