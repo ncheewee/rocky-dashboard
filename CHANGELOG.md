@@ -3,6 +3,7 @@
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
 ## 2026-11-25
+- [mechanic] Data: optional `CHARGES[].site` (charging development name only, e.g. "Nuovo") from MNL receipts via new `scripts/parse_mnl_receipt.py`; `check_data.mjs` rejects address-like values. Schema stays 1.
 - [grok] Desktop: drop the distance/cost hover chip; heatmap has no selected-drive line under the week label and no numbers on the blocks (hover still shows the detail).
 - [grok] Desktop: hover details on distance, battery-health, driving-style and heatmap points; health defaults to First 3 months; style tiles shortened; calendar km heavier than the date; kWh/100 km on each speed and trip row.
 - [grok] Desktop: drop battery-health legend and keep the 104.9% chip inside the plot; driving style is 60% scatter / 40% 2×2 tiles with short axes only; efficiency-by-speed is one row per band (label in the bar, share figures right of kWh).

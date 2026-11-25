@@ -28,6 +28,7 @@ Data refresh (Mechanic only, needs the private raw files in `data-raw/`, see `da
 ```bash
 pip install -r scripts/requirements.txt
 python3 scripts/parse_xpeng_export.py          # new XPENG export zip(s) -> merged 1 Hz store + xpeng_derived.json
+python3 scripts/parse_mnl_receipt.py --apply   # receipts/*.pdf -> sessions.json site (development name only)
 python3 scripts/build_dashboard_data.py        # sessions + readings + derived -> dashboard_data.json
 python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # -> src/data/dashboard.json
 ```
@@ -97,6 +98,9 @@ python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # 
 - Keys are UPPER_CASE (historical naming): `UPDATED`, `TODAY`, `DAILY`, `WEEKLY`, `MONTHLY`,
   `SOH`, `CHARGES`, `TILES`, `STATS`, `DRIVES`, … — see `types.ts` for all of them and their shapes.
 - `TODAY` = last day shown (Monday refresh → the Sunday before). `DAILY` never contains days after `TODAY`.
+- `CHARGES[].site` (optional): charging site = development name only (e.g. "Nuovo"), from the MNL receipt's Location via
+  `scripts/parse_mnl_receipt.py`. Never a street, unit, postal code, GPS pin, VIN or receipt number. A neighbourhood-level
+  map is allowed in the UI; a precise pin is not. `check_data.mjs` rejects digits / street words in it.
 - Estimated values carry an explicit flag/label (`kwhEst`, `costEst`, `est.` in strings). Keep that.
 - The UI imports the JSON at build time, so a data refresh means a rebuild/redeploy (automatic on push to `main`).
 
