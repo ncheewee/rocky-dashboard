@@ -290,7 +290,8 @@
      "Per 100%",
      "74.8 kWh"
     ]
-   ]
+   ],
+   "site": "Nuovo"
   },
   {
    "label": "Sat 14 Nov",
@@ -371,7 +372,8 @@
      "Per 100%",
      "75.6 kWh"
     ]
-   ]
+   ],
+   "site": "Nuovo"
   },
   {
    "label": "Sat 21 Nov",
@@ -453,7 +455,8 @@
      "Per 100%",
      "74.7 kWh"
     ]
-   ]
+   ],
+   "site": "Nuovo"
   }
  ],
  "SPEED": [
