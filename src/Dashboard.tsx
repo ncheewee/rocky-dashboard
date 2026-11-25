@@ -576,7 +576,7 @@ function SohPanel() {
   const { ref, w, h } = useWidth();
   const narrow = w < 560;
   const H = DESK ? Math.max(90, h) : narrow ? 280 : 330;
-  const L = 48, R = 18, T = DESK ? 8 : 22, B = 38;
+  const L = 48, R = DESK ? 14 : 18, T = DESK ? 6 : 22, B = DESK ? 32 : 38;
   const pw = Math.max(10, w - L - R), ph = H - T - B;
   const t0 = utc(DELIVERY), t1 = utc(WARRANTY_END), t8 = utc(WARRANTY_Y8);
   const xMin = zoom ? utc("2026-11-01") : t0;
@@ -620,12 +620,7 @@ function SohPanel() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined }}>
       {DESK ? (
-        <HeadRow title="Battery health vs warranty">
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-            {sohPills}
-            <ChartLegend items={sohLegend} stack align="end" />
-          </div>
-        </HeadRow>
+        <HeadRow title="Battery health vs warranty">{sohPills}</HeadRow>
       ) : (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", flex: "none" }}>
         {sohPills}
@@ -664,13 +659,21 @@ function SohPanel() {
             {!zoom && <text x={w - R} y={y(62) + 22} textAnchor="end" fontSize={FS} fontWeight={600} fill={theme.text.secondary}>{narrow ? "62% by 2036" : "62% by Nov 2036"}</text>}
             {pts.length > 1 && <path d={smoothPath(pts)} fill="none" stroke={hc} strokeWidth={2.5} strokeLinecap="round" />}
             {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={4.5} fill={hc} />)}
-            {l && last && (
+            {l && last && (() => {
+              const chipH = 24;
+              const chipY = Math.max(T + 2, Math.min(l.y - chipH / 2, T + ph - chipH - 2));
+              const chipX = pillRight ? l.x + 14 : l.x - 14 - pillW;
+              const tx = chipX + pillW / 2;
+              const ty = chipY + 17;
+              const subX = pillRight ? chipX + pillW + 8 : chipX - 8;
+              return (
               <g>
-                <rect x={pillRight ? l.x + 16 : l.x - 16 - pillW} y={l.y - 34} width={pillW} height={24} rx={12} fill={hc} />
-                <text x={pillRight ? l.x + 16 + pillW / 2 : l.x - 16 - pillW / 2} y={l.y - 17} textAnchor="middle" fontSize={14} fontWeight={700} fill="#FFFFFF">{pill}</text>
-                {sub && <text x={pillRight ? l.x + 16 + pillW + 8 : l.x - 24 - pillW} y={l.y - 17} textAnchor={pillRight ? "start" : "end"} fontSize={13} fill={theme.text.secondary}>{sub}</text>}
+                <rect x={chipX} y={chipY} width={pillW} height={chipH} rx={12} fill={hc} />
+                <text x={tx} y={ty} textAnchor="middle" fontSize={14} fontWeight={700} fill="#FFFFFF">{pill}</text>
+                {sub && <text x={subX} y={ty} textAnchor={pillRight ? "start" : "end"} fontSize={13} fill={theme.text.secondary}>{sub}</text>}
               </g>
-            )}
+              );
+            })()}
           </svg>
         )}
       </div>
@@ -1228,18 +1231,39 @@ function DriveHeatmap() {
 function SpeedBands() {
   const theme = useGrokTheme();
   const max = Math.max(...SPEED.map((s) => s.eff ?? 0));
+  if (DESK) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 8, minWidth: 0, height: "100%", minHeight: 0, overflow: "hidden" }}>
+        {SPEED.map((s) => {
+          const col = effColor(s.eff);
+          const pct = s.eff === null ? 0 : (s.eff / max) * 100;
+          return (
+            <div key={s.band} style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 0", minHeight: 28, minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 0, height: "100%", maxHeight: 40, borderRadius: 8, background: theme.bg.subtle, position: "relative", overflow: "hidden" }}>
+                {s.eff !== null && <div style={{ width: `${pct}%`, height: "100%", background: col.bg, borderRadius: 8 }} />}
+                <span style={{ position: "absolute", left: 10, top: 0, bottom: 0, display: "flex", alignItems: "center", fontSize: 13, fontWeight: 700, color: s.eff === null ? theme.text.secondary : col.ink, pointerEvents: "none", whiteSpace: "nowrap" }}>{`${s.band.replace("-", "–")} km/h`}</span>
+              </div>
+              <span style={{ width: 48, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.text.primary, flex: "none" }}>{s.eff === null ? "–" : s.eff}</span>
+              <span style={{ minWidth: 150, fontSize: 13, color: theme.text.tertiary, flex: "none", whiteSpace: "nowrap" }}>{`${s.km}% km · ${s.time}% min`}</span>
+            </div>
+          );
+        })}
+        <div style={{ fontSize: 13, color: theme.text.tertiary, flex: "none" }}>kWh/100 km</div>
+      </div>
+    );
+  }
   return (
-    <div style={{ display: "flex", flexDirection: "column", justifyContent: DESK ? "space-between" : undefined, gap: DESK ? 0 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
       {SPEED.map((s) => {
         const col = effColor(s.eff);
         return (
-          <div key={s.band} style={{ display: "flex", flexDirection: "column", gap: DESK ? 2 : 4, minWidth: 0, flex: "none" }}>
+          <div key={s.band} style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 14 }}>
               <span style={{ fontWeight: 700, color: theme.text.primary }}>{`${s.band.replace("-", "–")} km/h`}</span>
               <span style={{ color: theme.text.tertiary, fontSize: 13 }}>{`${s.km}% of km · ${s.time}% of time`}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ flex: 1, height: DESK ? 16 : 22, borderRadius: 6, background: theme.bg.subtle, overflow: "hidden", minWidth: 0 }}>
+              <div style={{ flex: 1, height: 22, borderRadius: 6, background: theme.bg.subtle, overflow: "hidden", minWidth: 0 }}>
                 {s.eff !== null && <div style={{ width: `${(s.eff / max) * 100}%`, height: "100%", background: col.bg, borderRadius: 6 }} />}
               </div>
               <span style={{ width: 52, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.text.primary, flexShrink: 0 }}>{s.eff === null ? "–" : s.eff}</span>
@@ -1247,7 +1271,7 @@ function SpeedBands() {
           </div>
         );
       })}
-      <div style={{ fontSize: 13, color: theme.text.tertiary, flex: "none" }}>kWh/100 km</div>
+      <div style={{ fontSize: 13, color: theme.text.tertiary }}>kWh/100 km</div>
     </div>
   );
 }
@@ -1532,7 +1556,7 @@ function StylePanel() {
   const { ref, w, h } = useWidth();
   const narrow = w < 560;
   const H = DESK ? Math.max(80, h) : narrow ? 240 : 280;
-  const L = 46, R = 14, T = DESK ? 26 : 14, B = DESK ? 50 : 30;
+  const L = DESK ? 40 : 46, R = DESK ? 10 : 14, T = DESK ? 18 : 14, B = DESK ? 28 : 30;
   const pw = Math.max(10, w - L - R), ph = H - T - B;
   const x0 = 30, x1 = 56, y0 = 0.8, y1 = 2.4;
   const x = (v: number) => L + ((v - x0) / (x1 - x0)) * pw;
@@ -1584,18 +1608,17 @@ function StylePanel() {
       <div ref={ref} style={{ width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
         {w > 0 && (!DESK || h > 0) && (
           <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Each trip: accelerator use against hardest braking">
-            {DESK && <text x={4} y={14} fontSize={13} fontWeight={600} fill={theme.text.secondary}>↑ Hardest braking (m/s², top 1% of trip)</text>}
-            {DESK && <text x={w - R} y={H - 6} textAnchor="end" fontSize={13} fontWeight={600} fill={theme.text.secondary}>Accelerator pressed (% of pedal, top 5% of trip) →</text>}
+            {DESK && <text x={L - 8} y={12} textAnchor="end" fontSize={13} fill={theme.text.tertiary}>m/s²</text>}
             {[1.0, 1.5, 2.0].map((v) => (
               <g key={v}>
                 <line x1={L} x2={w - R} y1={y(v)} y2={y(v)} stroke={theme.border.subtle} />
                 <text x={L - 8} y={y(v) + 5} textAnchor="end" fontSize={FS} fill={theme.text.tertiary}>{v.toFixed(1)}</text>
               </g>
             ))}
-            {[30, 35, 40, 45, 50, 55].map((v) => (
+            {(DESK ? [30, 40, 50, 55] : [30, 35, 40, 45, 50, 55]).map((v) => (
               <g key={v}>
                 <line x1={x(v)} x2={x(v)} y1={T} y2={T + ph} stroke={theme.border.subtle} />
-                <text x={x(v)} y={T + ph + 20} textAnchor="middle" fontSize={FS} fill={theme.text.tertiary}>{`${v}%`}</text>
+                <text x={x(v)} y={T + ph + 18} textAnchor="middle" fontSize={FS} fill={theme.text.tertiary}>{`${v}%`}</text>
               </g>
             ))}
             {STYLE_T.map((t, i) => ({ t, i })).sort((a, b) => a.t[3] - b.t[3]).map(({ t, i }) => {
@@ -1615,19 +1638,19 @@ function StylePanel() {
   );
   if (DESK) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, height: "100%", minHeight: 0 }}>
-        <HeadRow title="Driving style">{pillEl}</HeadRow>
-        {detailEl}
-        {chartEl}
-        {legendEl}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8, flex: "none", minWidth: 0 }}>
-          {tiles.map((t) => (
-            <div key={t.label} style={{ borderRadius: 12, padding: "6px 8px 7px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", gap: 1, minWidth: 0, boxSizing: "border-box" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary, lineHeight: "16px" }}>{t.label}</span>
-              <span style={{ fontSize: 16, fontWeight: 700, color: theme.text.primary, lineHeight: "20px" }}>{t.value}</span>
-              <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "15px" }}>{t.note}</span>
-            </div>
-          ))}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, height: "100%", minHeight: 0, flex: 1 }}>
+        <HeadRow title="Driving style" />
+        <div style={{ flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: "row", gap: 16, padding: "0 4px 4px 0", alignItems: "stretch" }}>
+          <div style={{ flex: "6 1 0", minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>{chartEl}</div>
+          <div style={{ flex: "4 1 0", alignSelf: "stretch", display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "stretch", justifyItems: "stretch", gap: 12, minWidth: 0, minHeight: 0, padding: "8px 8px 8px 4px", boxSizing: "border-box" }}>
+            {tiles.map((t) => (
+              <div key={t.label} style={{ borderRadius: 12, padding: "12px 14px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", justifyContent: "center", gap: 4, minWidth: 0, minHeight: 0, overflow: "hidden", boxSizing: "border-box" }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary, lineHeight: "16px" }}>{t.label}</span>
+                <span style={{ fontSize: 22, fontWeight: 700, color: theme.text.primary, lineHeight: "26px" }}>{t.value}</span>
+                <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "16px" }}>{t.note}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

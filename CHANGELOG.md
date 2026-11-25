@@ -3,6 +3,7 @@
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
 ## 2026-11-25
+- [grok] Desktop: drop battery-health legend and keep the 104.9% chip inside the plot; driving style is 60% scatter / 40% 2×2 tiles with short axes only; efficiency-by-speed is one row per band (label in the bar, share figures right of kWh).
 - [grok] Desktop legends: combo filters above the km/kWh/S$ legend; charge legend 2-col on the heading (off the line); health legend two lines, right-justified; driving-style tiles in a row under the scatter. Heatmap chips on the title row; calendar km at the top of each cell; speed-band label glued to its bar with space between bands.
 
 ## 2026-11-24
