@@ -245,6 +245,40 @@ function HeadRow({ title, children }: { title: string; children?: ReactNode }) {
   );
 }
 
+function HoverTip({ x, y, boxW, boxH, lines }: { x: number; y: number; boxW: number; boxH: number; lines: string[] }) {
+  const theme = useGrokTheme();
+  if (!lines.length) return null;
+  const estW = Math.min(boxW - 16, Math.max(80, ...lines.map((ln) => ln.length * 7.6 + 24)));
+  const left = Math.max(estW / 2 + 6, Math.min(x, boxW - estW / 2 - 6));
+  const below = y < 56;
+  return (
+    <div
+      role="tooltip"
+      style={{
+        position: "absolute",
+        left,
+        top: Math.max(6, Math.min(y, boxH - 6)),
+        transform: below ? "translate(-50%, 12px)" : "translate(-50%, calc(-100% - 10px))",
+        pointerEvents: "none",
+        zIndex: 8,
+        background: theme.bg.elevated,
+        color: theme.text.primary,
+        border: `1px solid ${theme.border.default}`,
+        borderRadius: 8,
+        padding: "6px 10px",
+        fontSize: 13,
+        lineHeight: "18px",
+        whiteSpace: "nowrap",
+        boxShadow: isDarkTheme(theme) ? "0 8px 24px rgba(0,0,0,0.55)" : "0 8px 24px rgba(20,20,20,0.16)",
+      }}
+    >
+      {lines.map((ln, i) => (
+        <div key={i} style={{ fontWeight: i === 0 ? 700 : 400, color: i === 0 ? theme.text.primary : theme.text.secondary }}>{ln}</div>
+      ))}
+    </div>
+  );
+}
+
 function Pills<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   const theme = useGrokTheme();
   return (
@@ -266,6 +300,7 @@ function ComboPanel() {
   const [period, setPeriodRaw] = useState<"month" | "week" | "day">("day");
   const [view, setView] = useState<View | null>(null);
   const [panning, setPanning] = useState(false);
+  const [tip, setTip] = useState<{ i: number; x: number; y: number } | null>(null);
   const { ref, w, h } = useWidth();
   const narrow = w < 560;
   const all: Bucket[] = period === "month" ? MONTHLY : period === "week" ? WEEKLY : DAILY;
@@ -364,8 +399,21 @@ function ComboPanel() {
       if (e.pointerType === "mouse") { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ } }
     }
   };
-  const onMove = (e: { pointerId: number; clientX: number; clientY: number; currentTarget: HTMLDivElement }) => {
-    if (!ptrs.current.has(e.pointerId)) return;
+  const onMove = (e: { pointerId: number; clientX: number; clientY: number; currentTarget: HTMLDivElement; pointerType?: string }) => {
+    if (!ptrs.current.has(e.pointerId)) {
+      if (DESK && e.pointerType === "mouse" && !pan.current.on) {
+        const x = localX(e.clientX);
+        const { L: l, pw: p, n: nn } = geo.current;
+        if (x < l || x > l + p) { setTip(null); return; }
+        const vv = viewRef.current;
+        const sp = vv.hi - vv.lo;
+        const i = Math.round(vv.lo + ((x - l) / p) * sp - 0.5);
+        if (i < 0 || i >= nn) { setTip(null); return; }
+        const y = e.clientY - (box.current ? box.current.getBoundingClientRect().top : 0);
+        setTip({ i, x: l + (i + 0.5 - vv.lo) * (p / sp), y });
+      }
+      return;
+    }
     const x = localX(e.clientX);
     ptrs.current.set(e.pointerId, { x, y: e.clientY });
     const s = g.current;
@@ -380,6 +428,7 @@ function ComboPanel() {
     if (s.mode === "pan") {
       const sp = s.v0.hi - s.v0.lo;
       if (Math.abs(x - s.x0) > 3) s.moved = true;
+      setTip(null);
       const p = pan.current;
       p.lo = clampG(s.v0.lo - ((x - s.x0) / geo.current.pw) * sp, sp).lo;
       p.sp = sp;
@@ -478,6 +527,7 @@ function ComboPanel() {
             onPointerMove={onMove}
             onPointerUp={onUp}
             onPointerCancel={onUp}
+            onPointerLeave={() => setTip(null)}
             style={{ position: "relative", touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: zoomable ? "grab" : "default", width: w, height: H }}
           >
             {!isDefault && (
@@ -559,6 +609,14 @@ function ComboPanel() {
               </g>
             )}
           </svg>
+          {DESK && tip && all[tip.i] && (() => {
+            const r = all[tip.i]!;
+            const etot = r.kwh + r.kwhEst;
+            const km = r.km === null ? "– km" : `${Math.round(r.km)} km`;
+            const kwh = `${r.kwhEst > 0 ? "≈" : ""}${etot === 0 ? "0" : etot.toFixed(etot >= 10 ? 0 : 1)} kWh`;
+            const cost = r.cost + r.costEst === 0 ? "S$0" : costLabel(r);
+            return <HoverTip x={tip.x} y={tip.y} boxW={w} boxH={H} lines={[r.label, `${km} · ${kwh}`, cost]} />;
+          })()}
           </div>
         )}
       </div>
@@ -571,7 +629,8 @@ function SohPanel() {
   const dv = theme.dataviz;
   const hc = dv.categorical[0];
   const risk = "#E0453A";
-  const [view, setView] = useState<"10y" | "zoom">("10y");
+  const [view, setView] = useState<"10y" | "zoom">(DESK ? "zoom" : "10y");
+  const [tip, setTip] = useState<number | null>(null);
   const zoom = view === "zoom";
   const { ref, w, h } = useWidth();
   const narrow = w < 560;
@@ -612,7 +671,9 @@ function SohPanel() {
   ];
   const sohPills = (
         <Pills<"10y" | "zoom">
-          options={[{ value: "10y", label: "10 years" }, { value: "zoom", label: "First 3 months" }]}
+          options={DESK
+            ? [{ value: "zoom", label: "First 3 months" }, { value: "10y", label: "10 years" }]
+            : [{ value: "10y", label: "10 years" }, { value: "zoom", label: "First 3 months" }]}
           value={view}
           onChange={(v: "10y" | "zoom") => setView(v)}
         />
@@ -629,6 +690,7 @@ function SohPanel() {
       )}
       <div ref={ref} style={{ position: "relative", width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
         {w > 0 && (!DESK || h > 0) && (
+          <>
           <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Battery health against the warranty line">
             <defs>
               <linearGradient id="sohRisk" x1="0" y1="0" x2="0" y2="1">
@@ -658,7 +720,12 @@ function SohPanel() {
             {w8 && <text x={w8.x - 10} y={w8.y + 16} textAnchor="end" fontSize={FS} fontWeight={600} fill={theme.text.secondary}>{narrow ? "70% by 2034" : "70% by Nov 2034"}</text>}
             {!zoom && <text x={w - R} y={y(62) + 22} textAnchor="end" fontSize={FS} fontWeight={600} fill={theme.text.secondary}>{narrow ? "62% by 2036" : "62% by Nov 2036"}</text>}
             {pts.length > 1 && <path d={smoothPath(pts)} fill="none" stroke={hc} strokeWidth={2.5} strokeLinecap="round" />}
-            {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={4.5} fill={hc} />)}
+            {pts.map((p, i) => (
+              <g key={i} onPointerEnter={() => { if (DESK) setTip(i); }} onPointerLeave={() => { if (DESK) setTip(null); }} style={{ cursor: DESK ? "pointer" : undefined }}>
+                <circle cx={p.x} cy={p.y} r={12} fill={hc} fillOpacity={0} />
+                <circle cx={p.x} cy={p.y} r={tip === i ? 6 : 4.5} fill={hc} />
+              </g>
+            ))}
             {l && last && (() => {
               const chipH = 24;
               const chipY = Math.max(T + 2, Math.min(l.y - chipH / 2, T + ph - chipH - 2));
@@ -675,6 +742,15 @@ function SohPanel() {
               );
             })()}
           </svg>
+          {DESK && tip !== null && (() => {
+            const p = SOH[tip];
+            const pt = pts[tip];
+            if (!p || !pt) return null;
+            const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(p.date.slice(5, 7)) - 1] ?? "";
+            const lines = [Number(p.date.slice(8, 10)) + " " + mon, p.rel + "% · " + p.kwh + " kWh", p.pctNew + "% of new · " + p.lo + "–" + p.hi + "%"];
+            return <HoverTip x={pt.x} y={pt.y} boxW={w} boxH={H} lines={lines} />;
+          })()}
+          </>
         )}
       </div>
     </div>
@@ -747,8 +823,8 @@ function DistanceCalendar() {
                       title={outside ? undefined : km === null ? `${day} ${names[m - 1]}: no data yet` : `${day} ${names[m - 1]}: ${Math.round(km)} km`}
                       style={{ aspectRatio: DESK ? undefined : "1 / 1", height: DESK ? "100%" : undefined, minHeight: 0, borderRadius: 8, background: style ? style.bg : "transparent", color: style ? style.ink : theme.text.tertiary, border: style ? "none" : `1px solid ${theme.border.subtle}`, display: "flex", flexDirection: DESK ? "row" : "column", justifyContent: "space-between", alignItems: DESK ? "flex-start" : undefined, padding: DESK ? "5px 6px" : "4px 5px", minWidth: 0, overflow: "hidden", boxSizing: "border-box" }}
                     >
-                      <span style={{ fontSize: 13, lineHeight: "13px", fontWeight: 500 }}>{day}</span>
-                      <span style={{ fontSize: DESK ? 13 : 15, lineHeight: DESK ? "13px" : "16px", fontWeight: 700, textAlign: "right" }}>{outside ? "" : km === null ? "?" : Math.round(km)}</span>
+                      <span style={{ fontSize: 13, lineHeight: "13px", fontWeight: DESK ? 500 : 500, opacity: DESK ? 0.62 : 1 }}>{day}</span>
+                      <span style={{ fontSize: DESK ? 16 : 15, lineHeight: DESK ? "16px" : "16px", fontWeight: 800, textAlign: "right", letterSpacing: DESK ? "-0.03em" : undefined }}>{outside ? "" : km === null ? "?" : Math.round(km)}</span>
                     </div>
                   );
                 })}
@@ -1033,7 +1109,7 @@ function kmStyle(v: number, dark = false): { bg: string; ink: string } {
 
 function DriveHeatmap() {
   const theme = useGrokTheme();
-  const { ref, w } = useWidth();
+  const { ref, w, h: panelH } = useWidth();
   const gridBox = useWidth();
   const dark = isDarkTheme(theme);
   const labelW = 34;
@@ -1054,6 +1130,7 @@ function DriveHeatmap() {
   let hMin = 23, hMax = 0;
   DRIVES.forEach((r) => { hMin = Math.min(hMin, Math.floor(r[1] / 60)); hMax = Math.max(hMax, Math.min(23, Math.ceil(r[2] / 60) - 1)); });
   const [sel, setSel] = useState<number | null>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; lines: string[] } | null>(null);
   const moved = useRef(false);
   if (hMax < hMin) { hMin = 6; hMax = 22; }
   const hours = Array.from({ length: hMax - hMin + 1 }, (_, i) => hMin + i);
@@ -1149,7 +1226,10 @@ function DriveHeatmap() {
         const s = blockStyle(r), on = i === cur;
         const label = mode === "eff" ? (r[5] === null ? "" : r[5].toFixed(1)) : mode === "km" ? r[3].toFixed(1) : `${r[4]}`;
         return (
-          <div key={i} role="button" aria-label={curText(r).join(" · ")} title={curText(r).join(" · ")} onClick={() => { if (!moved.current) setSel(i); }} onPointerEnter={(e) => { if (e.pointerType === "mouse") setSel(i); }}
+          <div key={i} role="button" aria-label={curText(r).join(" · ")} title={DESK ? undefined : curText(r).join(" · ")} onClick={() => { if (!moved.current) setSel(i); }}
+            onPointerEnter={(e) => { if (e.pointerType === "mouse") { setSel(i); if (DESK && ref.current) { const b = ref.current.getBoundingClientRect(); setTip({ x: e.clientX - b.left, y: e.clientY - b.top, lines: curText(r) }); } } }}
+            onPointerMove={(e) => { if (DESK && e.pointerType === "mouse" && ref.current) { const b = ref.current.getBoundingClientRect(); setTip({ x: e.clientX - b.left, y: e.clientY - b.top, lines: curText(r) }); } }}
+            onPointerLeave={() => { if (DESK) setTip(null); }}
             style={{ position: "absolute", left: 1, right: 1, top, height: hgt, borderRadius: 5, background: s.bg, color: s.ink, fontSize: 13, fontWeight: 700, lineHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: on ? `0 0 0 2px ${theme.text.primary}` : `0 0 0 1px ${theme.bg.base}`, zIndex: on ? 2 : 1, cursor: "pointer" }}>{hgt >= 17 ? label : ""}</div>
         );
       })}
@@ -1164,7 +1244,7 @@ function DriveHeatmap() {
   const sep = (x: number) => <div style={{ height: 2, borderRadius: 1, background: theme.bg.base, opacity: 0.7, margin: "3px 0", marginRight: x }} />;
   const heatPills = <Pills<"eff" | "km" | "min"> options={[{ value: "eff", label: "Efficiency" }, { value: "km", label: "Distance" }, { value: "min", label: "Minutes" }]} value={mode} onChange={(m: "eff" | "km" | "min") => setMode(m)} />;
   return (
-    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, maxWidth: DESK ? "none" : 760, height: DESK ? "100%" : undefined, minHeight: 0, overflow: DESK ? "hidden" : undefined }}>
+    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, maxWidth: DESK ? "none" : 760, height: DESK ? "100%" : undefined, minHeight: 0, overflow: DESK ? "hidden" : undefined, position: "relative" }}>
       {DESK ? <HeadRow title="Driving Heatmap">{heatPills}</HeadRow> : <div style={{ flex: "none" }}>{heatPills}</div>}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flex: "none" }}>
         {arrow(-1)}
@@ -1224,6 +1304,7 @@ function DriveHeatmap() {
         ))}
         <span style={{ color: theme.text.tertiary }}>{mode === "eff" ? "kWh/100 km per drive · grey < 1 km · weekends tinted" : mode === "km" ? "km per drive · weekends tinted" : "min per drive · weekends tinted"}</span>
       </div>
+      {DESK && tip && <HoverTip x={tip.x} y={tip.y} boxW={w} boxH={panelH || 400} lines={tip.lines} />}
     </div>
   );
 }
@@ -1243,12 +1324,14 @@ function SpeedBands() {
                 {s.eff !== null && <div style={{ width: `${pct}%`, height: "100%", background: col.bg, borderRadius: 8 }} />}
                 <span style={{ position: "absolute", left: 10, top: 0, bottom: 0, display: "flex", alignItems: "center", fontSize: 13, fontWeight: 700, color: s.eff === null ? theme.text.secondary : col.ink, pointerEvents: "none", whiteSpace: "nowrap" }}>{`${s.band.replace("-", "–")} km/h`}</span>
               </div>
-              <span style={{ width: 48, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.text.primary, flex: "none" }}>{s.eff === null ? "–" : s.eff}</span>
-              <span style={{ minWidth: 150, fontSize: 13, color: theme.text.tertiary, flex: "none", whiteSpace: "nowrap" }}>{`${s.km}% km · ${s.time}% min`}</span>
+              <span style={{ flex: "none", whiteSpace: "nowrap", display: "flex", alignItems: "baseline", gap: 5 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: theme.text.primary }}>{s.eff === null ? "–" : s.eff}</span>
+                <span style={{ fontSize: 13, color: theme.text.tertiary }}>kWh/100 km</span>
+              </span>
+              <span style={{ minWidth: 132, fontSize: 13, color: theme.text.tertiary, flex: "none", whiteSpace: "nowrap" }}>{`${s.km}% km · ${s.time}% min`}</span>
             </div>
           );
         })}
-        <div style={{ fontSize: 13, color: theme.text.tertiary, flex: "none" }}>kWh/100 km</div>
       </div>
     );
   }
@@ -1276,13 +1359,6 @@ function SpeedBands() {
   );
 }
 
-const EFF_CHIP_LEGEND: { max: number | null; bg: string; ink: string; label: string }[] = [
-  { max: 10, bg: "#2E9E4F", ink: "#FFFFFF", label: "≤ 10" },
-  { max: 12, bg: "#9ED36A", ink: "#1F2933", label: "10–12" },
-  { max: 14, bg: "#F2C94C", ink: "#1F2933", label: "12–14" },
-  { max: 16, bg: "#F2994A", ink: "#1F2933", label: "14–16" },
-  { max: null, bg: "#E0453A", ink: "#FFFFFF", label: "16+" },
-];
 function TripList() {
   const theme = useGrokTheme();
   const [mode, setMode] = useState<"longest" | "recent">("longest");
@@ -1294,23 +1370,10 @@ function TripList() {
           onChange={(v: "longest" | "recent") => setMode(v)}
         />
   );
-  const chipLegend = (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", alignItems: "center", fontSize: 13, color: theme.text.secondary }}>
-      {EFF_CHIP_LEGEND.map((b) => (
-        <span key={b.label} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-          <span style={{ minWidth: 28, textAlign: "center", padding: "1px 6px", borderRadius: 6, background: b.bg, color: b.ink, fontSize: 13, fontWeight: 700 }}>{b.label}</span>
-        </span>
-      ))}
-      <span style={{ color: theme.text.tertiary }}>kWh/100 km</span>
-    </div>
-  );
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: DESK ? 8 : 12, minWidth: 0, height: DESK ? "100%" : undefined, minHeight: DESK ? 0 : undefined, overflow: DESK ? "hidden" : undefined }}>
       {DESK ? (
-        <HeadRow title="Trips">
-          {pills}
-          {chipLegend}
-        </HeadRow>
+        <HeadRow title="Trips">{pills}</HeadRow>
       ) : (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, flex: "none" }}>
         {pills}
@@ -1326,7 +1389,8 @@ function TripList() {
                 <div style={{ fontSize: 13, color: theme.text.tertiary, marginTop: DESK ? 0 : 2, lineHeight: DESK ? "16px" : undefined }}>{`${Math.round(t.min)} min · avg ${Math.round(t.avg)} · max ${Math.round(t.max)} km/h`}</div>
               </div>
               <div style={{ fontSize: DESK ? 15 : 17, fontWeight: 700, color: theme.text.primary, flexShrink: 0 }}>{`${t.km} km`}</div>
-              <div style={{ flexShrink: 0, minWidth: 52, textAlign: "center", padding: DESK ? "2px 7px" : "4px 8px", borderRadius: 8, background: col.bg, color: col.ink, fontSize: 14, fontWeight: 700 }}>{t.eff}</div>
+              <div style={{ flexShrink: 0, minWidth: DESK ? 0 : 52, textAlign: "center", padding: DESK ? "2px 7px" : "4px 8px", borderRadius: 8, background: col.bg, color: col.ink, fontSize: 14, fontWeight: 700 }}>{t.eff}</div>
+              {DESK && <span style={{ fontSize: 13, color: theme.text.tertiary, flexShrink: 0, whiteSpace: "nowrap" }}>kWh/100 km</span>}
             </div>
           );
         })}
@@ -1563,12 +1627,18 @@ function StylePanel() {
   const y = (v: number) => T + ph - ((v - y0) / (y1 - y0)) * ph;
   const dot = dark ? "#7FB2FF" : "#2F6FE0";
   const [sel, setSel] = useState(STYLE_TRIPS.length - 1);
+  const [hover, setHover] = useState<number | null>(null);
   const st = STYLE_T[sel];
+  const hv = hover !== null ? STYLE_T[hover] : undefined;
   const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const tripDay = (s: string) => `${DOW3[new Date(utc(`2026-${s.slice(0, 5)}`)).getUTCDay()] ?? ""} ${Number(s.slice(3, 5))} ${MON[Number(s.slice(0, 2)) - 1] ?? ""} ${s.slice(6)}`;
   const PEAK_MARK = 90;
-  const tiles = [
-
+  const tiles = DESK ? [
+        { label: "Heavy accel", value: `${STYLE.heavyPct}%`, note: `p95 ${STYLE.pedalP95}%`, color: "#F2994A" },
+        { label: "Harsh", value: `${STYLE.harshPer100}`, note: `${STYLE.harshAcc} acc · ${STYLE.harshBrk} brk`, color: "#EB5757" },
+        { label: "Cornering", value: `${STYLE.latG} g`, note: `max ${STYLE.latGMax} g`, color: "#9B51E0" },
+        { label: "Braking", value: `${STYLE.brakePct}%`, note: `p99 ${STYLE.brakeP99} m/s²`, color: "#2F80ED" },
+  ] : [
         { label: "Heavy accelerator", value: `${STYLE.heavyPct}%`, note: `pedal > 50% · p95 ${STYLE.pedalP95}%`, color: "#F2994A" },
         { label: "Harsh events", value: `${STYLE.harshPer100}`, note: `per 100 km · ${STYLE.harshAcc} accel / ${STYLE.harshBrk} brake`, color: "#EB5757" },
         { label: "Cornering", value: `${STYLE.latG} g`, note: `p98, est. from steering · max ${STYLE.latGMax} g`, color: "#9B51E0" },
@@ -1605,9 +1675,9 @@ function StylePanel() {
         </div>
       );
   const chartEl = (
-      <div ref={ref} style={{ width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
+      <div ref={ref} style={{ position: "relative", width: "100%", minWidth: 0, ...(DESK ? { flex: 1, minHeight: 0 } : { minHeight: H }) }}>
         {w > 0 && (!DESK || h > 0) && (
-          <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Each trip: accelerator use against hardest braking">
+          <svg width={w} height={H} style={{ display: "block" }} role="img" aria-label="Each trip: accelerator use against hardest braking" onPointerLeave={() => { if (DESK) setHover(null); }}>
             {DESK && <text x={L - 8} y={12} textAnchor="end" fontSize={13} fill={theme.text.tertiary}>m/s²</text>}
             {[1.0, 1.5, 2.0].map((v) => (
               <g key={v}>
@@ -1624,8 +1694,8 @@ function StylePanel() {
             {STYLE_T.map((t, i) => ({ t, i })).sort((a, b) => a.t[3] - b.t[3]).map(({ t, i }) => {
               const cx = x(t[0]), cy = y(t[1]), r = tripR(t[2]), col = t[3] > 0 ? HARSH_COLORS[Math.min(2, t[3])] ?? dot : dot;
               return (
-                <g key={i} onClick={() => setSel(i)} onPointerEnter={(e: { pointerType: string }) => { if (e.pointerType === "mouse") setSel(i); }} style={{ cursor: "pointer" }}>
-                  {i === sel && <circle cx={cx} cy={cy} r={r + 6} fill={col} fillOpacity={0.25} />}
+                <g key={i} onClick={() => setSel(i)} onPointerEnter={(e: { pointerType: string }) => { if (e.pointerType === "mouse") { setSel(i); if (DESK) setHover(i); } }} style={{ cursor: "pointer" }}>
+                  {(i === sel || i === hover) && <circle cx={cx} cy={cy} r={r + 6} fill={col} fillOpacity={0.25} />}
                   <circle cx={cx} cy={cy} r={r} fill={col} fillOpacity={0.9} />
                   {t[4] >= PEAK_MARK && <path d={`M${cx - 4} ${cy - r - 3} L${cx + 4} ${cy - r - 3} L${cx} ${cy - r - 10} Z`} fill={theme.text.secondary} />}
                   <circle cx={cx} cy={cy} r={Math.max(12, r + 4)} fill={col} fillOpacity={0} />
@@ -1633,6 +1703,19 @@ function StylePanel() {
               );
             })}
           </svg>
+        )}
+        {DESK && hv && (
+          <HoverTip
+            x={x(hv[0])}
+            y={y(hv[1])}
+            boxW={w}
+            boxH={H}
+            lines={[
+              `${tripDay(hv[5])} · ${hv[2]} km`,
+              `pedal ${hv[0]}% · peak ${hv[4]}%`,
+              `brake ${hv[1]} m/s²${hv[3] ? ` · ${hv[3]} harsh` : ""}`,
+            ]}
+          />
         )}
       </div>
   );
@@ -1644,9 +1727,9 @@ function StylePanel() {
           <div style={{ flex: "6 1 0", minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>{chartEl}</div>
           <div style={{ flex: "4 1 0", alignSelf: "stretch", display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "stretch", justifyItems: "stretch", gap: 12, minWidth: 0, minHeight: 0, padding: "8px 8px 8px 4px", boxSizing: "border-box" }}>
             {tiles.map((t) => (
-              <div key={t.label} style={{ borderRadius: 12, padding: "12px 14px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", justifyContent: "center", gap: 4, minWidth: 0, minHeight: 0, overflow: "hidden", boxSizing: "border-box" }}>
+              <div key={t.label} style={{ borderRadius: 12, padding: "8px 10px", background: t.color + "14", border: `2px solid ${t.color}`, display: "flex", flexDirection: "column", justifyContent: "center", gap: 2, minWidth: 0, minHeight: 0, overflow: "hidden", boxSizing: "border-box" }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary, lineHeight: "16px" }}>{t.label}</span>
-                <span style={{ fontSize: 22, fontWeight: 700, color: theme.text.primary, lineHeight: "26px" }}>{t.value}</span>
+                <span style={{ fontSize: 18, fontWeight: 700, color: theme.text.primary, lineHeight: "22px" }}>{t.value}</span>
                 <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "16px" }}>{t.note}</span>
               </div>
             ))}
