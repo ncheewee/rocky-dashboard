@@ -3,7 +3,7 @@
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
 ## 2026-11-26
-- [grok] Desktop charging cards: MNL receipt site name plus neighbourhood map (no pin). Phone unchanged.
+- [grok] Charging cards: MNL receipt site name on every card; desktop also has a neighbourhood map (no pin).
 
 ## 2026-11-25
 - [mechanic] Data: optional `CHARGES[].site` (charging development name only, e.g. "Nuovo") from MNL receipts via new `scripts/parse_mnl_receipt.py`; `check_data.mjs` rejects address-like values. Schema stays 1.

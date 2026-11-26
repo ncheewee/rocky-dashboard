@@ -45,7 +45,7 @@ Driving style · Efficiency by speed · Trips · Driving and car stats · Insigh
   monotone curve with per-point labels (daily labels horizontal above the dot). No desktop hover chip. Pan/pinch/zoom gestures; never scrolls the page sideways.
 - **Driving Heatmap:** one Mon–Sun week, swipe or ‹ ›; drives as blocks at exact times; Efficiency / Distance / Minutes. Desktop hover on a block shows time, km, minutes and kWh/100 km; no selected-drive line under the week label; blocks have no in-chip numbers. Phone keeps the line and the in-block numbers.
 - **Tyres (cold, bar):** green ≥ 2.6 · amber 2.5–2.59 · red < 2.5. Desktop: colour legend centred under the car, no placard line; sparkline of cold-bar history outside each corner’s numbers, with a date x-axis. Phone still shows placard 2.6 cold. Keep `src/assets/car-topdown-3x.png`.
-- **Charging sessions:** power profile 0–8 kW. Desktop: site chip (receipt development name) on the heading row; kW ticks on the right of the profile; approximate neighbourhood map (no pin) beside the profile; two-column stats centred with equal inset. Phone unchanged (no site chip, no map).
+- **Charging sessions:** power profile 0–8 kW. Site chip (receipt development name) on the heading row. Desktop: kW ticks on the right of the profile; approximate neighbourhood map (no pin) beside the profile; two-column stats centred with equal inset. Phone: site chip only, no map.
 - **Trips chips:** coloured efficiency number; desktop writes kWh/100 km after each number. Phone still has the “Coloured chip” footnote.
 - **Efficiency colours (kWh/100 km):** green better than average, amber around average, red higher; grey < 1 km.
 

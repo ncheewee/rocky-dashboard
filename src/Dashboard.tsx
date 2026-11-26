@@ -1014,11 +1014,12 @@ function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
           <div key={ch.label} aria-hidden={deck && k !== idx ? true : undefined} onClick={() => { if (deck && k !== idx && !movedC.current) go(k); }} style={{ ...(deck ? { flex: `0 0 ${cardW}px`, width: cardW, height: DESK ? "100%" : undefined, opacity: k === idx ? 1 : 0.5, transition: `opacity ${MS}ms`, cursor: k === idx ? "default" : "pointer" } : { order: N - 1 - k }), borderRadius: 16, padding: deck ? 14 : 12, background: "#27AE60" + "14", border: "2px solid #27AE60", display: "flex", flexDirection: "column", gap: 10, minWidth: 0, minHeight: 0, boxSizing: "border-box" }}>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: theme.text.primary }}>{`${ch.label} · ${ch.time}`}</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 {DESK && ch.site && <span style={{ fontSize: 13, fontWeight: 700, padding: "2px 8px", borderRadius: 999, border: `1px solid ${theme.border.default}`, color: theme.text.primary }}>{ch.site}</span>}
                 <span style={{ fontSize: 13, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: ch.live ? "#F2994A" : "#2E9E4F", color: ch.live ? "#1F2933" : "#FFFFFF" }}>{ch.tag}</span>
               </span>
             </div>
+            {!DESK && ch.site && <div style={{ fontSize: 13, fontWeight: 700, color: theme.text.secondary, lineHeight: "16px" }}>{ch.site}</div>}
             <div>
               <div style={{ position: "relative", height: 14, borderRadius: 7, background: theme.border.subtle, overflow: "hidden" }}>
                 <div style={{ position: "absolute", left: `${ch.socFrom}%`, width: `${ch.socTo - ch.socFrom}%`, top: 0, bottom: 0, background: "#27AE60", borderRadius: 7 }} />
