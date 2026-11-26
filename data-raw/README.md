@@ -11,7 +11,7 @@ Expected files (all private, never commit or upload):
 | `xpeng-export/merged_1hz.csv.gz` | merged 1 Hz store of all exports | `parse_xpeng_export.py` |
 | `xpeng_derived.json` | trips, charges, SOC series, KPIs | `parse_xpeng_export.py` |
 | `car_readings.json` | XPENG app readings (range, SOC, odometer) | `parse_xpeng_export.py` + manual |
-| `sessions.json` | charging sessions from MNL receipts | Mechanic (receipt check) |
+| `sessions.json` | charging sessions from MNL receipts (`location` = development name only, never street/unit) | Mechanic (receipt check) |
 | `car_settings.json` | settings confirmed by the owner (charge limit) | manual |
 | `receipts/*.pdf` | MNL receipt PDFs (`parse_mnl_receipt.py` copies the Location's development name into `sessions.json` `site`) | Mechanic |
 | `dashboard_data.json` | intermediate chart data | `build_dashboard_data.py` |

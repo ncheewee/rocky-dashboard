@@ -90,7 +90,7 @@ python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # 
   Warranty markers: 70% at 8 yr / 160,000 km, 62% at 10 yr / 200,000 km (extended).
 - Tyre colours (cold): green ≥ 2.6 bar, amber 2.5–2.59, red < 2.5. Keep the car PNG.
 - **Never invent data.** Anything estimated must be labelled as an estimate in the UI (`est.`).
-- No GPS / location data anywhere.
+- No GPS pin, no street / unit / postal. Receipt **development name** (e.g. Nuovo) and an approximate neighbourhood map are allowed.
 
 ## Data contract
 
@@ -110,5 +110,5 @@ python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # 
   `sessions.json` / `car_readings.json` / `xpeng_derived.json` / `dashboard_data.json`, emails, credentials, tokens.
   `.gitignore` covers them; check `git status` and `git diff --cached` before every commit.
 - Commit as `Chee Wee Ng <269198623+ncheewee@users.noreply.github.com>` (no personal email in public history).
-- No home address / charger site names, receipt numbers, card digits or account IDs in code, comments, data or commit messages.
+- No home address, unit, postal code, receipt numbers, card digits or account IDs in code, comments, data or commit messages. Development names from charging receipts (not street addresses) may appear in the UI.
 - Only processed aggregates go into `src/data/dashboard.json`. No VIN, no GPS, no account details.

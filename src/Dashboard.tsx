@@ -904,6 +904,39 @@ function SocChart() {
   );
 }
 
+/** Neighbourhood tiles only — no pin, no street. Keys match Charge.site from the receipt. */
+const SITE_TILES: Record<string, { src: string[]; cx: string; cy: string }> = {
+  Nuovo: {
+    src: [
+      "https://tile.openstreetmap.org/15/25835/16257.png",
+      "https://tile.openstreetmap.org/15/25836/16257.png",
+      "https://tile.openstreetmap.org/15/25835/16258.png",
+      "https://tile.openstreetmap.org/15/25836/16258.png",
+    ],
+    cx: "59%",
+    cy: "61%",
+  },
+};
+
+function SiteMap({ site }: { site?: string }) {
+  const theme = useGrokTheme();
+  if (!site) return null;
+  const tiles = SITE_TILES[site];
+  return (
+    <div style={{ flex: DESK ? "0 0 220px" : undefined, width: DESK ? 220 : "100%", alignSelf: DESK ? "center" : undefined, display: "flex", flexDirection: "column", gap: 4, pointerEvents: "none" }}>
+      {tiles && (
+        <div aria-hidden="true" style={{ position: "relative", height: DESK ? 180 : 132, borderRadius: 8, overflow: "hidden", border: `1px solid ${theme.border.subtle}`, background: theme.bg.subtle }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", width: "100%", height: "100%" }}>
+            {tiles.src.map((src) => <img key={src} src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "fill", display: "block" }} />)}
+          </div>
+          <div style={{ position: "absolute", left: tiles.cx, top: tiles.cy, width: "34%", aspectRatio: "1", transform: "translate(-50%,-50%)", borderRadius: "50%", background: "#27AE6033", border: "2px solid #27AE60", boxSizing: "border-box" }} />
+        </div>
+      )}
+      <div style={{ fontSize: 13, fontWeight: 700, color: theme.text.secondary, lineHeight: "16px" }}>{site}<span style={{ fontWeight: 500, color: theme.text.tertiary }}>{` · OSM`}</span></div>
+    </div>
+  );
+}
+
 function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
   const theme = useGrokTheme();
   const { ref, w } = useWidth();
@@ -981,8 +1014,12 @@ function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
           <div key={ch.label} aria-hidden={deck && k !== idx ? true : undefined} onClick={() => { if (deck && k !== idx && !movedC.current) go(k); }} style={{ ...(deck ? { flex: `0 0 ${cardW}px`, width: cardW, height: DESK ? "100%" : undefined, opacity: k === idx ? 1 : 0.5, transition: `opacity ${MS}ms`, cursor: k === idx ? "default" : "pointer" } : { order: N - 1 - k }), borderRadius: 16, padding: deck ? 14 : 12, background: "#27AE60" + "14", border: "2px solid #27AE60", display: "flex", flexDirection: "column", gap: 10, minWidth: 0, minHeight: 0, boxSizing: "border-box" }}>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: theme.text.primary }}>{`${ch.label} · ${ch.time}`}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: ch.live ? "#F2994A" : "#2E9E4F", color: ch.live ? "#1F2933" : "#FFFFFF" }}>{ch.tag}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {DESK && ch.site && <span style={{ fontSize: 13, fontWeight: 700, padding: "2px 8px", borderRadius: 999, border: `1px solid ${theme.border.default}`, color: theme.text.primary }}>{ch.site}</span>}
+                <span style={{ fontSize: 13, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: ch.live ? "#F2994A" : "#2E9E4F", color: ch.live ? "#1F2933" : "#FFFFFF" }}>{ch.tag}</span>
+              </span>
             </div>
+            {!DESK && ch.site && <div style={{ fontSize: 13, fontWeight: 700, color: theme.text.secondary, lineHeight: "16px" }}>{ch.site}</div>}
             <div>
               <div style={{ position: "relative", height: 14, borderRadius: 7, background: theme.border.subtle, overflow: "hidden" }}>
                 <div style={{ position: "absolute", left: `${ch.socFrom}%`, width: `${ch.socTo - ch.socFrom}%`, top: 0, bottom: 0, background: "#27AE60", borderRadius: 7 }} />
@@ -996,7 +1033,7 @@ function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
                 </span>
               </div>
             </div>
-            <div style={{ flex: DESK ? "1 1 0" : undefined, minHeight: DESK ? 80 : undefined, display: "flex", gap: DESK ? 6 : 0, minWidth: 0 }}>
+            <div style={{ flex: DESK ? "1 1 0" : undefined, minHeight: DESK ? 80 : undefined, display: "flex", gap: DESK ? 8 : 8, minWidth: 0, flexDirection: DESK ? "row" : "column" }}>
               <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <svg width="100%" height={DESK ? "100%" : 44} viewBox="0 0 100 30" preserveAspectRatio="none" aria-label="Charging power profile" role="img" style={{ display: "block", flex: DESK ? 1 : undefined, minHeight: DESK ? 80 : 44 }}>
                 {cov < 1 && <rect x={cov * 100} y={0} width={100 - cov * 100} height={30} fill={theme.border.subtle} fillOpacity={0.6} />}
@@ -1020,6 +1057,7 @@ function ChargeCards({ swipe = false }: { swipe?: boolean } = {}) {
                   <div style={{ height: 20, flex: "none" }} />
                 </div>
               )}
+              {DESK && <SiteMap site={ch.site} />}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: DESK ? "6px 40px" : "6px 12px", width: DESK ? "min(100%, 480px)" : undefined, maxWidth: "100%", margin: DESK ? "0 auto" : undefined, boxSizing: "border-box" }}>
               {stats.map(([k, v]) => (
