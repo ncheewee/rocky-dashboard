@@ -181,9 +181,11 @@ function utcDow(date: string): number {
 }
 function tileDetail(t: (typeof TILES)[number]): string[] {
   const nights = DAILY.filter((d) => d.kwh > 0);
+  const withKm = nights.filter((d) => d.km != null);
+  const receiptOnly = nights.filter((d) => d.km == null);
   const chartKwh = nights.reduce((a, d) => a + d.kwh, 0);
-  const chartCost = nights.reduce((a, d) => a + d.cost, 0);
   const kmAll = DAILY.reduce((a, d) => a + (d.km ?? 0), 0);
+  const drivenCost = DAILY.filter((d) => d.km != null).reduce((a, d) => a + d.cost, 0);
   const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   switch (t.label) {
     case "Driven since 11 Nov": {
@@ -218,8 +220,8 @@ function tileDetail(t: (typeof TILES)[number]): string[] {
       return lines;
     }
     case "Per 100 km": {
-      const billed = kmAll > 0 ? (chartCost / kmAll) * 100 : 0;
-      return [`est. ${EFF_BINS.avg} kWh × S$0.58`, `on chart S$${billed.toFixed(2)} / 100 km`, `S$${chartCost.toFixed(2)} / ${kmAll} km to ${READINGS_TO}`];
+      const billed = kmAll > 0 ? (drivenCost / kmAll) * 100 : 0;
+      return [`est. ${EFF_BINS.avg} kWh × S$0.58`, `on chart S$${billed.toFixed(2)} / 100 km`, `S$${drivenCost.toFixed(2)} / ${kmAll} km to ${READINGS_TO}`];
     }
     case "Odometer": {
       const odo = Number(String(t.value).replace(/[^\d.]/g, ""));
@@ -238,13 +240,13 @@ function tileDetail(t: (typeof TILES)[number]): string[] {
       return [`${p.kwh} kWh vs ${SOH_RATED_KWH} kWh rated`, `${p.pctNew}% of new · ${p.lo}–${p.hi}%`, "warranty 70% / 62% · 8 / 10 yr"];
     }
     case "Spent charging": {
-      const tot = Number(String(t.value).replace(/[^\d.]/g, ""));
       const totK = Number((t.note.match(/([\d.]+) kWh/) || [])[1] || 0);
       const rec = (t.note.match(/(\d+) receipts/) || [])[1];
-      const extra = Math.round((tot - chartCost) * 100) / 100;
-      const extraK = Math.round((totK - chartKwh) * 100) / 100;
-      const lines = [`${rec ?? "–"} receipts · ${totK || "–"} kWh`, `on chart to ${READINGS_TO}: ${nights.length} nights · S$${chartCost.toFixed(2)}`];
-      if (extra > 0.009) lines.push(`after export · S$${extra.toFixed(2)} · ${extraK} kWh`);
+      const withKmCost = withKm.reduce((a, d) => a + d.cost, 0);
+      const onlyCost = receiptOnly.reduce((a, d) => a + d.cost, 0);
+      const onlyK = receiptOnly.reduce((a, d) => a + d.kwh, 0);
+      const lines = [`${rec ?? "–"} receipts · ${totK || chartKwh} kWh billed`, `${withKm.length} nights with km · S$${withKmCost.toFixed(2)}`];
+      if (receiptOnly.length) lines.push(`${receiptOnly.length} after XPENG · S$${onlyCost.toFixed(2)} · ${onlyK} kWh`);
       return lines;
     }
     default:

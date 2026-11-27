@@ -52,6 +52,7 @@ for a, b in zip(odo, odo[1:]):
         measured[t(b["time"]).date().isoformat()] = measured.get(t(b["time"]).date().isoformat(), 0) + b["odometer_km"] - a["odometer_km"]
 
 # --- energy and cost per day (by session start date) ---
+# kWh/S$ are MNL receipt billed (wall), not XPENG pack-ingested. Days after the export have km = None.
 daily_kwh, daily_kwh_est, daily_cost, daily_cost_est = defaultdict(float), defaultdict(float), defaultdict(float), defaultdict(float)
 pending_days = set()
 for s in sessions:
@@ -68,11 +69,13 @@ for s in sessions:
         pending_days.add(d)
 
 known_through = max(t(r["time"]) for r in readings).date()
+sess_through = max((t(s["start"]).date() for s in sessions), default=known_through)
+end = max(known_through, sess_through)  # receipts after the XPENG export still get kWh/S$ days
 all_days = sorted(set(daily_km) | set(daily_kwh) | set(daily_kwh_est) | set(daily_cost) | set(measured))
 start = START_DATE
 daily = []
 d = start
-while d <= known_through:
+while d <= end:
     k = d.isoformat()
     km = measured.get(k)
     src = "odometer" if km is not None else ("range_estimate" if k in daily_km else "unknown")
