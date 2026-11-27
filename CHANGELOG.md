@@ -3,6 +3,7 @@
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
 ## 2026-11-27
+- [grok] Desktop charging: kW curve above the maplet; map has town and major-road labels, still cropped, no pin. Phone unchanged.
 - [grok] Desktop charging maplet: crop to fill (no stretch); simple light neighbourhood map. Phone unchanged.
 - [grok] Combo chart kWh/S$ follow MNL receipts (billed, not pack-ingested), including days after the XPENG export; km stays dashed until the next export.
 - [grok] Desktop: tile hover shows next-level figures; Spent splits chart nights vs receipts after the XPENG export. Window-3 map is the same height as the kW curve. Phone unchanged.
