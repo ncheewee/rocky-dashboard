@@ -16,7 +16,7 @@ export interface DashboardData {
   UPDATED: string;
   /** "22 Nov": last day of XPENG export data */
   READINGS_TO: string;
-  /** "2026-11-22": last data day shown (Monday refresh shows data through the Sunday before) */
+  /** last day on the daily chart: Monday refresh = Sunday before, else last MNL receipt start */
   TODAY: string;
   START_DATE: string;
   DELIVERY: string;

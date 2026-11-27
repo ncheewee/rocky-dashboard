@@ -2,7 +2,7 @@
  "schemaVersion": 1,
  "UPDATED": "27 Nov 2026",
  "READINGS_TO": "22 Nov",
- "TODAY": "2026-11-22",
+ "TODAY": "2026-11-26",
  "START_DATE": "2026-11-11",
  "DELIVERY": "2026-11-10",
  "WARRANTY_Y8": "2034-11-10",
@@ -25,6 +25,15 @@
    "cost": 34.54,
    "costEst": 0.0,
    "pending": false
+  },
+  {
+   "label": "23–29 Nov",
+   "km": null,
+   "kwh": 55.29,
+   "kwhEst": 0.0,
+   "cost": 32.07,
+   "costEst": 0.0,
+   "pending": false
   }
  ],
  "MONTHLY": [
@@ -32,9 +41,9 @@
    "label": "Nov 2026",
    "short": "Nov",
    "km": 845.0,
-   "kwh": 149.16,
+   "kwh": 204.45,
    "kwhEst": 0.0,
-   "cost": 86.52,
+   "cost": 118.59,
    "costEst": 0.0,
    "pending": false
   }
@@ -181,6 +190,54 @@
    "kwh": 0.0,
    "kwhEst": 0.0,
    "cost": 0.0,
+   "costEst": 0.0,
+   "pending": false
+  },
+  {
+   "date": "2026-11-23",
+   "label": "Mon 23",
+   "short": "23",
+   "km": null,
+   "src": "unknown",
+   "kwh": 0.0,
+   "kwhEst": 0.0,
+   "cost": 0.0,
+   "costEst": 0.0,
+   "pending": false
+  },
+  {
+   "date": "2026-11-24",
+   "label": "Tue 24",
+   "short": "24",
+   "km": null,
+   "src": "unknown",
+   "kwh": 0.0,
+   "kwhEst": 0.0,
+   "cost": 0.0,
+   "costEst": 0.0,
+   "pending": false
+  },
+  {
+   "date": "2026-11-25",
+   "label": "Wed 25",
+   "short": "25",
+   "km": null,
+   "src": "unknown",
+   "kwh": 0.0,
+   "kwhEst": 0.0,
+   "cost": 0.0,
+   "costEst": 0.0,
+   "pending": false
+  },
+  {
+   "date": "2026-11-26",
+   "label": "Thu 26",
+   "short": "26",
+   "km": null,
+   "src": "unknown",
+   "kwh": 55.29,
+   "kwhEst": 0.0,
+   "cost": 32.07,
    "costEst": 0.0,
    "pending": false
   }

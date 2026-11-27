@@ -97,7 +97,7 @@ python3 scripts/build_ui_data.py --today 2026-11-29 --updated "30 Nov 2026"   # 
 - File: `src/data/dashboard.json`, typed by `src/data/types.ts` (`DashboardData`), `schemaVersion: 1`.
 - Keys are UPPER_CASE (historical naming): `UPDATED`, `TODAY`, `DAILY`, `WEEKLY`, `MONTHLY`,
   `SOH`, `CHARGES`, `TILES`, `STATS`, `DRIVES`, … — see `types.ts` for all of them and their shapes.
-- `TODAY` = last day shown (Monday refresh → the Sunday before). `DAILY` never contains days after `TODAY`.
+- `TODAY` = last day on the daily chart. Monday refresh: the Sunday before. A later MNL receipt extends `TODAY` to that session’s start date. `DAILY` never contains days after `TODAY`. Combo **kWh / S$** are receipt billed (wall), not pack-ingested; km after `READINGS_TO` is null (dashed).
 - `CHARGES[].site` (optional): charging site = development name only (e.g. "Nuovo"), from the MNL receipt's Location via
   `scripts/parse_mnl_receipt.py`. Never a street, unit, postal code, GPS pin, VIN or receipt number. A neighbourhood-level
   map is allowed in the UI; a precise pin is not. `check_data.mjs` rejects digits / street words in it.
