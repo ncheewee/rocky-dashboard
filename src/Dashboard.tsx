@@ -176,15 +176,92 @@ function smoothPath(p: Pt[]): string {
   return f ? `M${f.x},${f.y}${segsD(smoothSegs(p))}` : "";
 }
 
+function utcDow(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay();
+}
+function tileDetail(t: (typeof TILES)[number]): string[] {
+  const nights = DAILY.filter((d) => d.kwh > 0);
+  const chartKwh = nights.reduce((a, d) => a + d.kwh, 0);
+  const chartCost = nights.reduce((a, d) => a + d.cost, 0);
+  const kmAll = DAILY.reduce((a, d) => a + (d.km ?? 0), 0);
+  const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  switch (t.label) {
+    case "Driven since 11 Nov": {
+      const kms = DAILY.map((d) => d.km ?? 0);
+      const max = Math.max(0, ...kms);
+      const maxD = DAILY.find((d) => d.km === max);
+      let wd = 0, we = 0, wn = 0, en = 0;
+      DAILY.forEach((d) => {
+        const km = d.km ?? 0, dow = utcDow(d.date);
+        if (dow === 0 || dow === 6) { we += km; en += 1; } else { wd += km; wn += 1; }
+      });
+      const lines = [`${DAILY.length} days · every day`, `longest ${max} km · ${maxD?.label ?? ""}`];
+      if (wn && en) lines.push(`weekdays ${Math.round(wd / wn)} · weekends ${Math.round(we / en)}`);
+      return lines;
+    }
+    case "Efficiency": {
+      const ranked = SPEED.filter((s) => s.eff != null) as { band: string; eff: number }[];
+      const best = ranked.reduce((a, s) => (s.eff < a.eff ? s : a), ranked[0]);
+      const crawl = SPEED.find((s) => s.band.startsWith("0"));
+      const parked = (t.note.match(/([\d.]+) incl/) || [])[1];
+      const lines = [`driving ${t.value} · parked-in ${parked ?? "–"}`];
+      if (best) lines.push(`best ${best.band} · ${best.eff} kWh/100 km`);
+      if (crawl?.eff != null) lines.push(`< 20 km/h · ${crawl.eff}`);
+      return lines;
+    }
+    case "Real full range": {
+      const pack = SOH[SOH.length - 1]?.kwh;
+      const km = Number(String(t.value).replace(/[^\d.]/g, ""));
+      const lines: string[] = [];
+      if (pack) lines.push(`${pack} kWh pack at ${EFF_BINS.avg} kWh/100 km`);
+      if (km) lines.push(`WLTP 520 km · ${km > 520 ? "+" : ""}${Math.round(km - 520)} km`);
+      return lines;
+    }
+    case "Per 100 km": {
+      const billed = kmAll > 0 ? (chartCost / kmAll) * 100 : 0;
+      return [`est. ${EFF_BINS.avg} kWh × S$0.58`, `on chart S$${billed.toFixed(2)} / 100 km`, `S$${chartCost.toFixed(2)} / ${kmAll} km to ${READINGS_TO}`];
+    }
+    case "Odometer": {
+      const odo = Number(String(t.value).replace(/[^\d.]/g, ""));
+      const start = odo - kmAll;
+      const m = mon[Number(START_DATE.slice(5, 7)) - 1] ?? "";
+      return [`at ${READINGS_TO}`, `${kmAll} km since ${Number(START_DATE.slice(8, 10))} ${m}`, start > 0 ? `at delivery ${start} km` : ""].filter(Boolean);
+    }
+    case "Regen share": {
+      const rec = (t.note.match(/([\d.]+) kWh/) || [])[1];
+      const per = kmAll > 0 && rec ? ((Number(rec) / kmAll) * 100).toFixed(1) : "";
+      return [t.note, per ? `${per} kWh/100 km back` : "of drive energy"];
+    }
+    case "Battery health": {
+      const p = SOH[SOH.length - 1];
+      if (!p) return t.note ? [t.note] : [];
+      return [`${p.kwh} kWh vs ${SOH_RATED_KWH} kWh rated`, `${p.pctNew}% of new · ${p.lo}–${p.hi}%`, "warranty 70% / 62% · 8 / 10 yr"];
+    }
+    case "Spent charging": {
+      const tot = Number(String(t.value).replace(/[^\d.]/g, ""));
+      const totK = Number((t.note.match(/([\d.]+) kWh/) || [])[1] || 0);
+      const rec = (t.note.match(/(\d+) receipts/) || [])[1];
+      const extra = Math.round((tot - chartCost) * 100) / 100;
+      const extraK = Math.round((totK - chartKwh) * 100) / 100;
+      const lines = [`${rec ?? "–"} receipts · ${totK || "–"} kWh`, `on chart to ${READINGS_TO}: ${nights.length} nights · S$${chartCost.toFixed(2)}`];
+      if (extra > 0.009) lines.push(`after export · S$${extra.toFixed(2)} · ${extraK} kWh`);
+      return lines;
+    }
+    default:
+      return t.note ? [t.note] : [];
+  }
+}
+
 function Tiles() {
   const theme = useGrokTheme();
   const { ref, w } = useWidth();
   const cols = DESK ? 8 : w > 0 && w < 600 ? 2 : 4;
+  const [tip, setTip] = useState<number | null>(null);
   return (
     <div ref={ref} style={{ minWidth: 0, flexShrink: DESK ? 0 : undefined }}>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: DESK ? 10 : 12 }}>
-        {TILES.map((t) => DESK ? (
-          <div key={t.label} style={{ background: t.color + "14", border: `2px solid ${t.color}`, borderRadius: 12, padding: "7px 10px 8px", display: "flex", flexDirection: "column", gap: 3, minWidth: 0, boxSizing: "border-box" }}>
+        {TILES.map((t, i) => DESK ? (
+          <div key={t.label} onPointerEnter={() => setTip(i)} onPointerLeave={() => setTip(null)} style={{ position: "relative", background: t.color + "14", border: `2px solid ${t.color}`, borderRadius: 12, padding: "7px 10px 8px", display: "flex", flexDirection: "column", gap: 3, minWidth: 0, boxSizing: "border-box" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexWrap: "wrap" }}>
               <div style={{ width: 24, height: 24, borderRadius: 7, background: t.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icon name={t.icon} />
@@ -193,6 +270,13 @@ function Tiles() {
               {t.unit && <span style={{ fontSize: 13, fontWeight: 600, color: theme.text.secondary }}>{t.unit}</span>}
             </div>
             <span style={{ fontSize: 13, color: theme.text.tertiary, lineHeight: "16px" }}><span style={{ fontWeight: 600, color: theme.text.secondary }}>{t.label}</span>{` · ${t.note}`}</span>
+            {tip === i && (
+              <div role="tooltip" style={{ position: "absolute", top: "100%", [i >= 6 ? "right" : "left"]: 0, marginTop: 6, zIndex: 9, minWidth: "100%", background: theme.bg.elevated, color: theme.text.primary, border: `1px solid ${theme.border.default}`, borderRadius: 8, padding: "6px 10px", fontSize: 13, lineHeight: "18px", whiteSpace: "nowrap", boxShadow: isDarkTheme(theme) ? "0 8px 24px rgba(0,0,0,0.55)" : "0 8px 24px rgba(20,20,20,0.16)" }}>
+                {tileDetail(t).map((ln, k) => (
+                  <div key={k} style={{ fontWeight: k === 0 ? 700 : 400, color: k === 0 ? theme.text.primary : theme.text.secondary }}>{ln}</div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div key={t.label} style={{ background: t.color + "14", border: `2px solid ${t.color}`, borderRadius: DESK ? 12 : 16, padding: DESK ? "7px 10px 8px" : "13px 12px 15px", display: "flex", flexDirection: "column", gap: DESK ? 2 : 6, minWidth: 0, boxSizing: "border-box" }}>
@@ -923,16 +1007,16 @@ function SiteMap({ site }: { site?: string }) {
   if (!site) return null;
   const tiles = SITE_TILES[site];
   return (
-    <div style={{ flex: DESK ? "0 0 220px" : undefined, width: DESK ? 220 : "100%", alignSelf: DESK ? "center" : undefined, display: "flex", flexDirection: "column", gap: 4, pointerEvents: "none" }}>
+    <div style={{ flex: DESK ? "0 0 220px" : undefined, width: DESK ? 220 : "100%", alignSelf: DESK ? "stretch" : undefined, minHeight: DESK ? 0 : undefined, display: "flex", flexDirection: "column", gap: DESK ? 2 : 4, pointerEvents: "none" }}>
       {tiles && (
-        <div aria-hidden="true" style={{ position: "relative", height: DESK ? 180 : 132, borderRadius: 8, overflow: "hidden", border: `1px solid ${theme.border.subtle}`, background: theme.bg.subtle }}>
+        <div aria-hidden="true" style={{ position: "relative", flex: DESK ? 1 : undefined, height: DESK ? undefined : 132, minHeight: DESK ? 0 : undefined, borderRadius: 8, overflow: "hidden", border: `1px solid ${theme.border.subtle}`, background: theme.bg.subtle }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", width: "100%", height: "100%" }}>
             {tiles.src.map((src) => <img key={src} src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "fill", display: "block" }} />)}
           </div>
           <div style={{ position: "absolute", left: tiles.cx, top: tiles.cy, width: "34%", aspectRatio: "1", transform: "translate(-50%,-50%)", borderRadius: "50%", background: "#27AE6033", border: "2px solid #27AE60", boxSizing: "border-box" }} />
         </div>
       )}
-      <div style={{ fontSize: 13, fontWeight: 700, color: theme.text.secondary, lineHeight: "16px" }}>{site}<span style={{ fontWeight: 500, color: theme.text.tertiary }}>{` · OSM`}</span></div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: theme.text.secondary, lineHeight: "18px", height: DESK ? 18 : undefined, flex: "none" }}>{site}<span style={{ fontWeight: 500, color: theme.text.tertiary }}>{` · OSM`}</span></div>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
 ## 2026-11-27
+- [grok] Desktop: tile hover shows next-level figures; Spent splits chart nights vs receipts after the XPENG export. Window-3 map is the same height as the kW curve. Phone unchanged.
 - [mechanic] data: add EV Charge By MNL receipt 2026-11-26
 
 ## 2026-11-26
