@@ -2,6 +2,9 @@
 
 Newest first. One line per change: `- [agent] what changed (PR #/commit)`. Agents: `mechanic`, `grok`, `human`.
 
+## 2026-11-27
+- [mechanic] data: add EV Charge By MNL receipt 2026-11-26
+
 ## 2026-11-26
 - [grok] Charging cards: MNL receipt site name on every card; desktop also has a neighbourhood map (no pin).
 

@@ -1,6 +1,6 @@
 {
  "schemaVersion": 1,
- "UPDATED": "23 Nov 2026",
+ "UPDATED": "27 Nov 2026",
  "READINGS_TO": "22 Nov",
  "TODAY": "2026-11-22",
  "START_DATE": "2026-11-11",
@@ -290,8 +290,7 @@
      "Per 100%",
      "74.8 kWh"
     ]
-   ],
-   "site": "Nuovo"
+   ]
   },
   {
    "label": "Sat 14 Nov",
@@ -372,8 +371,7 @@
      "Per 100%",
      "75.6 kWh"
     ]
-   ],
-   "site": "Nuovo"
+   ]
   },
   {
    "label": "Sat 21 Nov",
@@ -455,8 +453,7 @@
      "Per 100%",
      "74.7 kWh"
     ]
-   ],
-   "site": "Nuovo"
+   ]
   }
  ],
  "SPEED": [
@@ -1054,9 +1051,9 @@
   {
    "icon": "plug",
    "color": "#EB5757",
-   "value": "S$86.52",
+   "value": "S$118.59",
    "label": "Spent charging",
-   "note": "149.16 kWh · 4 receipts"
+   "note": "204.45 kWh · 5 receipts"
   }
  ],
  "STATS": [
