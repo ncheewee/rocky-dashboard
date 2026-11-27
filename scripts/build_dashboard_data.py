@@ -98,7 +98,8 @@ weekly = []
 for mon in sorted(wk):
     w = wk[mon]; sun = mon + dt.timedelta(6)
     lab = f"{mon.day}–{sun.day} {sun.strftime('%b')}" if mon.month == sun.month else f"{mon.day} {mon.strftime('%b')}–{sun.day} {sun.strftime('%b')}"
-    weekly.append({"week": lab, "monday": mon.isoformat(), "km": round(w["km"], 1),
+    weekly.append({"week": lab, "monday": mon.isoformat(),
+                   "km": None if w["km_unknown_days"] else round(w["km"], 1),
                    "kwh": round(w["kwh"], 2), "kwh_est": round(w["kwh_est"], 2), "cost": round(w["cost"], 2),
                    "cost_est": round(w["cost_est"], 2), "pending": w["pending"]})
 

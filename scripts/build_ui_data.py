@@ -164,7 +164,10 @@ def main():
     today = opt("--today", old.get("TODAY"))
     if not today: sys.exit("--today YYYY-MM-DD is required on the first run")
     data = json.load(open(D / "dashboard_data.json")); sessions = json.load(open(D / "sessions.json"))
-    last_receipt = max((s["start"][:10] for s in sessions if s.get("kwh") or s.get("amount_sgd")), default=today)
+    last_receipt = max(
+        (s["start"][:10] for s in sessions if s.get("kwh") or s.get("amount_sgd") or s.get("kwh_estimate") or s.get("amount_estimate_sgd")),
+        default=today,
+    )
     today = max(today, last_receipt)  # combo kWh/S$ follow receipts even after the XPENG export
     C = build(data, sessions, today, old.get("UPDATED", ""))
     changed = [key for key in C if key != "UPDATED" and C[key] != old.get(key)]
