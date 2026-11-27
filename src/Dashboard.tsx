@@ -990,35 +990,34 @@ function SocChart() {
   );
 }
 
-/** Neighbourhood tiles only — no pin, no street. Keys match Charge.site from the receipt. */
-const SITE_TILES: Record<string, { src: string[]; cx: string; cy: string }> = {
+/** Neighbourhood tile only — no pin, no street. Keys match Charge.site from the receipt. */
+const SITE_TILES: Record<string, { src: string; cx: string; cy: string }> = {
   Nuovo: {
-    src: [
-      "https://tile.openstreetmap.org/15/25835/16257.png",
-      "https://tile.openstreetmap.org/15/25836/16257.png",
-      "https://tile.openstreetmap.org/15/25835/16258.png",
-      "https://tile.openstreetmap.org/15/25836/16258.png",
-    ],
-    cx: "59%",
-    cy: "61%",
+    src: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/12/2032/3229",
+    cx: "52%",
+    cy: "28%",
   },
 };
 
 function SiteMap({ site }: { site?: string }) {
   const theme = useGrokTheme();
+  const { ref, w, h } = useWidth();
   if (!site) return null;
   const tiles = SITE_TILES[site];
+  const side = Math.max(w, h, 1);
   return (
     <div style={{ flex: DESK ? "0 0 220px" : undefined, width: DESK ? 220 : "100%", alignSelf: DESK ? "stretch" : undefined, minHeight: DESK ? 0 : undefined, display: "flex", flexDirection: "column", gap: DESK ? 2 : 4, pointerEvents: "none" }}>
       {tiles && (
-        <div aria-hidden="true" style={{ position: "relative", flex: DESK ? 1 : undefined, height: DESK ? undefined : 132, minHeight: DESK ? 0 : undefined, borderRadius: 8, overflow: "hidden", border: `1px solid ${theme.border.subtle}`, background: theme.bg.subtle }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", width: "100%", height: "100%" }}>
-            {tiles.src.map((src) => <img key={src} src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "fill", display: "block" }} />)}
-          </div>
-          <div style={{ position: "absolute", left: tiles.cx, top: tiles.cy, width: "34%", aspectRatio: "1", transform: "translate(-50%,-50%)", borderRadius: "50%", background: "#27AE6033", border: "2px solid #27AE60", boxSizing: "border-box" }} />
+        <div ref={ref} aria-hidden="true" style={{ position: "relative", flex: DESK ? 1 : undefined, height: DESK ? undefined : 132, minHeight: DESK ? 0 : undefined, borderRadius: 8, overflow: "hidden", border: `1px solid ${theme.border.subtle}`, background: theme.bg.subtle }}>
+          {w > 0 && h > 0 && (
+            <div style={{ position: "absolute", top: "50%", left: "50%", width: side, height: side, transform: "translate(-50%, -50%)" }}>
+              <img src={tiles.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <div style={{ position: "absolute", left: tiles.cx, top: tiles.cy, width: "32%", aspectRatio: "1", transform: "translate(-50%,-50%)", borderRadius: "50%", background: "#27AE6033", border: "2px solid #27AE60", boxSizing: "border-box" }} />
+            </div>
+          )}
         </div>
       )}
-      <div style={{ fontSize: 13, fontWeight: 700, color: theme.text.secondary, lineHeight: "18px", height: DESK ? 18 : undefined, flex: "none" }}>{site}<span style={{ fontWeight: 500, color: theme.text.tertiary }}>{` · OSM`}</span></div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: theme.text.secondary, lineHeight: "18px", height: DESK ? 18 : undefined, flex: "none" }}>{site}<span style={{ fontWeight: 500, color: theme.text.tertiary }}>{` · map`}</span></div>
     </div>
   );
 }
